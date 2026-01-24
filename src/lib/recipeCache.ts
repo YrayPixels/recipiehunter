@@ -6,6 +6,7 @@ const CACHE_KEYS = {
   POPULAR_RECIPES: `${CACHE_PREFIX}popular_recipes`,
   RECIPE_DETAIL: (id: string) => `${CACHE_PREFIX}recipe_${id}`,
   RANDOM_MEALS: (count: number) => `${CACHE_PREFIX}random_${count}`,
+  SEARCH_RESULTS: (query: string) => `${CACHE_PREFIX}search_${query.toLowerCase().replace(/\s+/g, '_')}`,
 };
 
 // Cache TTL in milliseconds
@@ -13,6 +14,7 @@ const CACHE_TTL = {
   POPULAR_RECIPES: 60 * 60 * 1000, // 1 hour - popular recipes change frequently
   RECIPE_DETAIL: 24 * 60 * 60 * 1000, // 24 hours - recipe details don't change
   RANDOM_MEALS: 60 * 60 * 1000, // 1 hour - random meals
+  SEARCH_RESULTS: 60 * 60 * 1000, // 1 hour - search results
 };
 
 interface CachedData<T> {
@@ -216,4 +218,28 @@ export async function cacheRecipe(recipe: any): Promise<void> {
   } catch (error) {
     console.error('Error caching recipe:', error);
   }
+}
+
+/**
+ * Get cached search results
+ */
+export async function getCachedSearchResults(query: string) {
+  if (!query || query.trim().length === 0) return null;
+  return getCached(CACHE_KEYS.SEARCH_RESULTS(query));
+}
+
+/**
+ * Set cached search results
+ */
+export async function setCachedSearchResults(query: string, results: any[]) {
+  if (!query || query.trim().length === 0) return;
+  
+  // Also cache individual recipe details
+  for (const result of results) {
+    if (result.idMeal) {
+      await setCachedRecipeDetail(result.idMeal, result);
+    }
+  }
+  
+  return setCached(CACHE_KEYS.SEARCH_RESULTS(query), results, CACHE_TTL.SEARCH_RESULTS);
 }

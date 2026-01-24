@@ -49,6 +49,10 @@ export default function DashboardScreen() {
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
   const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
   const bottomSheetRef = useRef<BottomSheetLib>(null);
+  const [searchResults, setSearchResults] = useState<PopularRecipe[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkOnboardingStatus = async () => {
     try {
@@ -202,6 +206,126 @@ export default function DashboardScreen() {
     setSelectedRecipe(null);
   };
 
+  const handleSearch = async (query: string) => {
+    setSearch(query);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // If query is empty, clear results
+    if (!query || query.trim().length === 0) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+
+    // Debounce search by 500ms
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setLoadingSearch(true);
+        setHasSearched(true);
+
+        // Check cache first
+        const { getCachedSearchResults, setCachedSearchResults } = await import('../src/lib/recipeCache');
+        const cached = await getCachedSearchResults(query);
+
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          // Transform cached results to our format
+          const transformedResults = cached
+            .map((meal) => mealDBAPI.transformMeal(meal))
+            .filter((meal) => meal !== null)
+            .map((transformed) => {
+              if (!transformed) return null;
+
+              const title = transformed.title;
+              const titleWords = title.split(' ');
+              let line1 = '';
+              let line2 = '';
+
+              for (const word of titleWords) {
+                if ((line1 + ' ' + word).length <= 20 && !line2) {
+                  line1 = line1 ? line1 + ' ' + word : word;
+                } else {
+                  line2 = line2 ? line2 + ' ' + word : word;
+                }
+              }
+
+              return {
+                id: transformed.id,
+                title: line2 ? `${line1}\n${line2}` : line1,
+                time: transformed.time,
+                difficulty: transformed.difficulty,
+                rating: transformed.rating,
+                imageUrl: transformed.imageUrl,
+              };
+            })
+            .filter((result): result is PopularRecipe => result !== null);
+
+          setSearchResults(transformedResults);
+          setLoadingSearch(false);
+          return;
+        }
+
+        // Search TheMealDB API
+        const meals = await mealDBAPI.searchByName(query);
+
+        if (!Array.isArray(meals) || meals.length === 0) {
+          setSearchResults([]);
+          setLoadingSearch(false);
+          return;
+        }
+
+        // Cache the raw search results
+        await setCachedSearchResults(query, meals);
+
+        // Transform to our format
+        const transformedResults: PopularRecipe[] = meals
+          .map((meal) => mealDBAPI.transformMeal(meal))
+          .filter((meal) => meal !== null)
+          .map((transformed) => {
+            if (!transformed) return null;
+
+            const title = transformed.title;
+            const titleWords = title.split(' ');
+            let line1 = '';
+            let line2 = '';
+
+            for (const word of titleWords) {
+              if ((line1 + ' ' + word).length <= 20 && !line2) {
+                line1 = line1 ? line1 + ' ' + word : word;
+              } else {
+                line2 = line2 ? line2 + ' ' + word : word;
+              }
+            }
+
+            return {
+              id: transformed.id,
+              title: line2 ? `${line1}\n${line2}` : line1,
+              time: transformed.time,
+              difficulty: transformed.difficulty,
+              rating: transformed.rating,
+              imageUrl: transformed.imageUrl,
+            };
+          })
+          .filter((result): result is PopularRecipe => result !== null);
+
+        setSearchResults(transformedResults);
+
+        // Update stats with new cached recipe count
+        const { countCachedRecipes } = await import('../src/lib/recipeCache');
+        const totalRecipes = await countCachedRecipes();
+        setStats(prev => ({ ...prev, totalRecipes }));
+      } catch (error) {
+        console.error('Error searching recipes:', error);
+        setSearchResults([]);
+      } finally {
+        setLoadingSearch(false);
+      }
+    }, 500);
+  };
+
   useEffect(() => {
     checkOnboardingStatus();
     loadStats();
@@ -266,8 +390,8 @@ export default function DashboardScreen() {
               variant="filled"
               value={search}
               leftIcon={<Search color="#313131" />}
-              onChangeText={setSearch}
-              placeholder="Search for a recipe or guide"
+              onChangeText={handleSearch}
+              placeholder="Search for a recipe"
             />
           </View>
 
@@ -316,6 +440,72 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {/* Search Results Section */}
+          {hasSearched && (
+            <>
+              <View className='px-2 mb-4'>
+                <Text className="text-2xl font-semibold mb-1 space-semibold" style={{ color: '#313131' }}>
+                  Search Results {search ? `for "${search}"` : ''}
+                </Text>
+              </View>
+              {loadingSearch ? (
+                <View className="py-8 items-center justify-center">
+                  <ActivityIndicator size="large" color="#313131" />
+                  <Text className="mt-4 space-regular" style={{ color: '#313131' }}>
+                    Searching recipes...
+                  </Text>
+                </View>
+              ) : searchResults.length > 0 ? (
+                <ScrollView className='py-2 mb-6' horizontal showsHorizontalScrollIndicator={false}>
+                  {searchResults.map((recipe) => (
+                    <TouchableOpacity
+                      key={recipe.id}
+                      onPress={() => handleRecipePress(recipe.id)}
+                      className="px-2 mb-4"
+                      activeOpacity={0.8}
+                    >
+                      <ImageBackground
+                        source={{ uri: recipe.imageUrl }}
+                        className="w-56 h-72 rounded-3xl overflow-hidden shadow"
+                        imageStyle={{ borderRadius: 24 }}
+                      >
+                        {/* Top glass panel */}
+                        <View className="absolute top-4 left-4 right-4 rounded-3xl px-4 py-3 bg-black/50 backdrop-blur-lg">
+                          <Text className="text-white text-lg space-bold leading-tight">
+                            {recipe.title}
+                          </Text>
+
+                          <View className="flex-row items-center mt-3">
+                            <Text className="text-white/90 text-sm space-semibold">{recipe.time}</Text>
+                            <View className="mx-3 h-4 w-0.5 bg-brand-green" />
+                            <Text className="text-white/90 text-sm space-semibold">{recipe.difficulty}</Text>
+                          </View>
+                        </View>
+
+                        {/* Rating pill */}
+                        <View className="absolute bottom-4 right-4 rounded-full px-3 py-2 bg-black/35 flex-row items-center">
+                          <Text className="text-brand-green text-base mr-2">★</Text>
+                          <Text className="text-white text-base space-semibold">{recipe.rating}</Text>
+                        </View>
+                      </ImageBackground>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : (
+                <View className="py-8 items-center justify-center mb-6">
+                  <Text className="space-regular" style={{ color: '#313131' }}>
+                    No recipes found for &quot;{search}&quot;
+                  </Text>
+                  <Text className="mt-2 text-sm space-regular" style={{ color: '#666' }}>
+                    Try a different search term
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Popular Recipes Section */}
           <View className=' px-2 mb-4'>
             <Text className="text-2xl font-semibold mb-1 space-semibold" style={{ color: '#313131' }}>
               Popular Recipes
