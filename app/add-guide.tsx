@@ -1,8 +1,7 @@
-import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { articleAPI, guidesAPI, videoAPI } from '../src/lib/api';
+import { guidesAPI, videoAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 
 type Mode = 'url' | 'upload' | 'ai-recipe' | 'ingredients';
@@ -17,7 +16,6 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,24 +29,6 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
   // Ingredients states
   const [ingredients, setIngredients] = useState('');
-  const [dietary, setDietary] = useState<string[]>([]);
-
-  const handleFilePick = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'video/*',
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setFile(result.assets[0].uri);
-        setError(null);
-      }
-    } catch (err) {
-      console.error('Error picking file:', err);
-      setError('Failed to pick file');
-    }
-  };
 
   const handleVideoPick = async () => {
     try {
@@ -80,7 +60,12 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
           setProgress(100);
           setCurrentStep('Done!');
           Alert.alert('Success', 'Guide created successfully!', [
-            { text: 'OK', onPress: () => router.back() },
+            {
+              text: 'OK', onPress: () => {
+                onClose();
+                onSuccess?.();
+              }
+            },
           ]);
         } else if (status.status === 'failed') {
           clearInterval(interval);
@@ -116,10 +101,10 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
         }
 
         setCurrentStep('Processing URL...');
-        const result = await videoAPI.processUrl(url, userId);
+        const urlResult = await videoAPI.processUrl(url, userId);
 
-        if (result.success) {
-          if (result.guide) {
+        if (urlResult.success) {
+          if (urlResult.guide) {
             // Immediate result
             setProcessing(false);
             setProgress(100);
@@ -130,13 +115,12 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 onSuccess?.();
               } },
             ]);
-          } else if (result.jobId) {
-            setJobId(result.jobId);
+          } else if (urlResult.jobId) {
             setCurrentStep('Processing in background...');
-            startPolling(result.jobId);
+            startPolling(urlResult.jobId);
           }
         } else {
-          throw new Error(result.error || 'Failed to process URL');
+          throw new Error(urlResult.error || 'Failed to process URL');
         }
       } else if (mode === 'upload') {
         if (!file) {
@@ -146,10 +130,10 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
         }
 
         setCurrentStep('Uploading...');
-        const result = await videoAPI.processUpload(file, userId);
+        const uploadResult = await videoAPI.processUpload(file, userId);
 
-        if (result.success) {
-          if (result.guide) {
+        if (uploadResult.success) {
+          if (uploadResult.guide) {
             // Immediate result
             setProcessing(false);
             setProgress(100);
@@ -160,17 +144,16 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 onSuccess?.();
               } },
             ]);
-          } else if (result.jobId) {
-            setJobId(result.jobId);
+          } else if (uploadResult.jobId) {
             setCurrentStep('Processing in background...');
-            startPolling(result.jobId);
+            startPolling(uploadResult.jobId);
           }
         } else {
-          throw new Error(result.error || 'Failed to upload video');
+          throw new Error(uploadResult.error || 'Failed to upload video');
         }
       } else if (mode === 'ai-recipe') {
         setCurrentStep('Generating recipe...');
-        const result = await guidesAPI.create({
+        await guidesAPI.create({
           userId,
           type: 'recipe',
           category: mealType,
@@ -206,7 +189,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
         setCurrentStep('Generating recipes from ingredients...');
         // Similar to AI recipe, but with ingredients
-        const result = await guidesAPI.create({
+        await guidesAPI.create({
           userId,
           type: 'recipe',
           category: mealType,
@@ -214,7 +197,6 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
           metadata: {
             generatedBy: 'from-ingredients',
             userIngredients: ingredients.split(',').map(i => i.trim()),
-            dietary,
           },
         });
 
@@ -236,157 +218,470 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <View className="flex-1 px-4 pt-4">
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-xl font-bold text-gray-900 dark:text-white">Add Guide</Text>
-          <View style={{ width: 60 }} />
+    <View className="flex-1" style={{ backgroundColor: '#F6FBDE' }}>
+      <View className="flex-1 px-6 pt-6">
+        {/* Header */}
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-3xl font-bold" style={{ color: '#313131' }}>Add Recipe</Text>
+          <TouchableOpacity onPress={onClose} className="p-2 -mr-2">
+            <Text className="text-2xl" style={{ color: '#313131' }}>✕</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Mode Selector */}
-        <View className="flex-row mb-4 bg-white dark:bg-gray-800 rounded-lg p-1">
+        <View className="flex-row mb-6 gap-2">
           <TouchableOpacity
             onPress={() => setMode('url')}
-            className={`flex-1 py-2 px-3 rounded ${mode === 'url' ? 'bg-green-600' : ''}`}
+            className="flex-1 py-3 px-3 rounded-3xl items-center"
+            style={{
+              backgroundColor: mode === 'url' ? '#D4E95A' : '#FFFFFF',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
           >
-            <Text className={`text-center ${mode === 'url' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+            <Text className="text-3xl mb-1">🔗</Text>
+            <Text
+              className="text-xs font-semibold text-center"
+              style={{ color: '#313131' }}
+            >
               URL
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setMode('upload')}
-            className={`flex-1 py-2 px-3 rounded ${mode === 'upload' ? 'bg-green-600' : ''}`}
+            className="flex-1 py-3 px-3 rounded-3xl items-center"
+            style={{
+              backgroundColor: mode === 'upload' ? '#D4E95A' : '#FFFFFF',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
           >
-            <Text className={`text-center ${mode === 'upload' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+            <Text className="text-3xl mb-1">📤</Text>
+            <Text
+              className="text-xs font-semibold text-center"
+              style={{ color: '#313131' }}
+            >
               Upload
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setMode('ai-recipe')}
-            className={`flex-1 py-2 px-3 rounded ${mode === 'ai-recipe' ? 'bg-green-600' : ''}`}
+            className="flex-1 py-3 px-3 rounded-3xl items-center"
+            style={{
+              backgroundColor: mode === 'ai-recipe' ? '#D4E95A' : '#FFFFFF',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
           >
-            <Text className={`text-center ${mode === 'ai-recipe' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+            <Text className="text-3xl mb-1">✨</Text>
+            <Text
+              className="text-xs font-semibold text-center"
+              style={{ color: '#313131' }}
+            >
               AI Recipe
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setMode('ingredients')}
-            className={`flex-1 py-2 px-3 rounded ${mode === 'ingredients' ? 'bg-green-600' : ''}`}
-          >
-            <Text className={`text-center ${mode === 'ingredients' ? 'text-white' : 'text-gray-700 dark:text-gray-300'}`}>
-              Ingredients
             </Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {mode === 'url' && (
             <View>
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Paste a YouTube, TikTok, or Instagram video URL
-              </Text>
-              <TextInput
-                value={url}
-                onChangeText={setUrl}
-                placeholder="https://..."
-                className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-4 text-gray-900 dark:text-white"
-                placeholderTextColor="#9CA3AF"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View className="bg-white rounded-3xl p-6 mb-4" style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 2,
+              }}>
+                <View className="flex-row items-center mb-4">
+                  <Text className="text-4xl mr-3">🎥</Text>
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold mb-1" style={{ color: '#313131' }}>
+                      From Video Link
+                    </Text>
+                    <Text className="text-sm" style={{ color: '#666' }}>
+                      YouTube, TikTok, or Instagram
+                    </Text>
+                  </View>
+                </View>
+
+                <TextInput
+                  value={url}
+                  onChangeText={setUrl}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="rounded-3xl p-4 text-base"
+                  style={{
+                    backgroundColor: '#F6FBDE',
+                    color: '#313131',
+                  }}
+                  placeholderTextColor="#999"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  multiline
+                />
+              </View>
+
+              {/* Tips Card */}
+              <View className="bg-brand-pink rounded-3xl p-5 mb-4">
+                <Text className="text-base font-semibold mb-2" style={{ color: '#313131' }}>
+                  💡 Pro Tips
+                </Text>
+                <Text className="text-sm leading-5" style={{ color: '#313131' }}>
+                  • Works with cooking videos and tutorials{'\n'}
+                  • We&apos;ll extract the recipe automatically{'\n'}
+                  • Includes ingredients & instructions
+                </Text>
+              </View>
             </View>
           )}
 
           {mode === 'upload' && (
             <View>
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Select a video file from your device
-              </Text>
               <TouchableOpacity
                 onPress={handleVideoPick}
-                className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4 border-2 border-dashed border-gray-300 dark:border-gray-600"
+                className="rounded-3xl p-8 mb-4 items-center"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 3,
+                  borderColor: file ? '#D4E95A' : '#E5E7EB',
+                  borderStyle: file ? 'solid' : 'dashed',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
               >
-                <Text className="text-center text-gray-700 dark:text-gray-300">
-                  {file ? 'Video Selected' : 'Tap to Select Video'}
-                </Text>
+                {file ? (
+                  <>
+                    <Text className="text-6xl mb-4">✅</Text>
+                    <Text className="text-lg font-bold mb-2" style={{ color: '#313131' }}>
+                      Video Selected!
+                    </Text>
+                    <Text className="text-sm text-center" style={{ color: '#666' }}>
+                      Tap to choose a different video
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-6xl mb-4">📱</Text>
+                    <Text className="text-lg font-bold mb-2" style={{ color: '#313131' }}>
+                      Choose Video File
+                    </Text>
+                    <Text className="text-sm text-center" style={{ color: '#666' }}>
+                      Select a cooking video from your device
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
+
+              {/* Info Card */}
+              <View className="bg-brand-pink rounded-3xl p-5 mb-4">
+                <Text className="text-base font-semibold mb-2" style={{ color: '#313131' }}>
+                  📹 What We Support
+                </Text>
+                <Text className="text-sm leading-5" style={{ color: '#313131' }}>
+                  • MP4, MOV, and most video formats{'\n'}
+                  • Recipe videos under 10 minutes work best{'\n'}
+                  • Clear audio helps extract better recipes
+                </Text>
+              </View>
             </View>
           )}
 
           {mode === 'ai-recipe' && (
             <View>
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Generate a recipe based on your preferences
-              </Text>
-              {/* Add recipe generator form fields here */}
-              <Text className="text-gray-700 dark:text-gray-300 mb-2">Meal Type</Text>
-              <TextInput
-                value={mealType}
-                onChangeText={setMealType}
-                placeholder="dinner"
-                className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-4 text-gray-900 dark:text-white"
-              />
-              {/* Add more fields as needed */}
+              <View className="bg-white rounded-3xl p-6 mb-4" style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 2,
+              }}>
+                <View className="flex-row items-center mb-5">
+                  <Text className="text-4xl mr-3">🤖</Text>
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold mb-1" style={{ color: '#313131' }}>
+                      AI-Generated Recipe
+                    </Text>
+                    <Text className="text-sm" style={{ color: '#666' }}>
+                      Tell us what you want to cook
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Meal Type */}
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Meal Type
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {['breakfast', 'lunch', 'dinner', 'dessert', 'drink'].map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        onPress={() => setMealType(type)}
+                        className="px-4 py-2.5 rounded-xl"
+                        style={{
+                          backgroundColor: mealType === type ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold capitalize text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {type}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Servings */}
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Servings
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {['1-2', '2-4', '4-6', '6-8'].map((serving) => (
+                      <TouchableOpacity
+                        key={serving}
+                        onPress={() => setServings(serving)}
+                        className="px-4 py-2.5 rounded-xl"
+                        style={{
+                          backgroundColor: servings === serving ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {serving} people
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Vibe/Style */}
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Cooking Style
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: 'quick', label: '⚡ Quick & Easy' },
+                      { id: 'fancy', label: '✨ Restaurant Style' },
+                      { id: 'healthy', label: '🥗 Healthy' },
+                      { id: 'comfort', label: '🍲 Comfort Food' },
+                    ].map((vibeOption) => (
+                      <TouchableOpacity
+                        key={vibeOption.id}
+                        onPress={() => setVibe(vibeOption.id)}
+                        className="px-4 py-2.5 rounded-xl"
+                        style={{
+                          backgroundColor: vibe === vibeOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {vibeOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Cuisine */}
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Cuisine
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: 'italian', label: '🇮🇹 Italian' },
+                      { id: 'mexican', label: '🇲🇽 Mexican' },
+                      { id: 'asian', label: '🥢 Asian' },
+                      { id: 'american', label: '🇺🇸 American' },
+                      { id: 'mediterranean', label: '🫒 Mediterranean' },
+                    ].map((cuisineOption) => (
+                      <TouchableOpacity
+                        key={cuisineOption.id}
+                        onPress={() => setCuisine(cuisineOption.id)}
+                        className="px-4 py-2.5 rounded-xl"
+                        style={{
+                          backgroundColor: cuisine === cuisineOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {cuisineOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Spice Level */}
+                <View className="mb-2">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Spice Level
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: 'mild', label: '😌 Mild' },
+                      { id: 'medium', label: '🌶️ Medium' },
+                      { id: 'hot', label: '🔥 Hot' },
+                    ].map((spiceOption) => (
+                      <TouchableOpacity
+                        key={spiceOption.id}
+                        onPress={() => setSpiceLevel(spiceOption.id)}
+                        className="px-4 py-2.5 rounded-xl"
+                        style={{
+                          backgroundColor: spiceLevel === spiceOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {spiceOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* AI Info Card */}
+              <View className="bg-brand-pink rounded-3xl p-5 mb-4">
+                <Text className="text-base font-semibold mb-2" style={{ color: '#313131' }}>
+                  ✨ AI Magic
+                </Text>
+                <Text className="text-sm leading-5" style={{ color: '#313131' }}>
+                  Our AI will create a custom recipe based on your preferences, complete with ingredients, instructions, and cooking tips!
+                </Text>
+              </View>
             </View>
           )}
 
           {mode === 'ingredients' && (
             <View>
-              <Text className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                Enter ingredients you have (comma-separated)
-              </Text>
-              <TextInput
-                value={ingredients}
-                onChangeText={setIngredients}
-                placeholder="chicken, tomatoes, onions, garlic"
-                className="bg-white dark:bg-gray-800 rounded-lg p-3 mb-4 text-gray-900 dark:text-white"
-                multiline
-                numberOfLines={4}
-              />
+              <View className="bg-white rounded-3xl p-6 mb-4" style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 2,
+              }}>
+                <View className="flex-row items-center mb-4">
+                  <Text className="text-4xl mr-3">🥕</Text>
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold mb-1" style={{ color: '#313131' }}>
+                      From Ingredients
+                    </Text>
+                    <Text className="text-sm" style={{ color: '#666' }}>
+                      What do you have in your kitchen?
+                    </Text>
+                  </View>
+                </View>
+
+                <TextInput
+                  value={ingredients}
+                  onChangeText={setIngredients}
+                  placeholder="e.g., chicken, tomatoes, onions, garlic, pasta..."
+                  className="rounded-3xl p-4 text-base"
+                  style={{
+                    backgroundColor: '#F6FBDE',
+                    color: '#313131',
+                    minHeight: 120,
+                    textAlignVertical: 'top',
+                  }}
+                  placeholderTextColor="#999"
+                  multiline
+                  numberOfLines={5}
+                />
+              </View>
+
+              {/* Tips Card */}
+              <View className="bg-brand-pink rounded-3xl p-5 mb-4">
+                <Text className="text-base font-semibold mb-2" style={{ color: '#313131' }}>
+                  🔍 How It Works
+                </Text>
+                <Text className="text-sm leading-5" style={{ color: '#313131' }}>
+                  • List ingredients separated by commas{'\n'}
+                  • We&apos;ll suggest recipes you can make{'\n'}
+                  • AI will match what you have
+                </Text>
+              </View>
             </View>
           )}
 
           {error && (
-            <View className="bg-red-100 dark:bg-red-900 rounded-lg p-3 mb-4">
-              <Text className="text-red-800 dark:text-red-200">{error}</Text>
+            <View className="rounded-3xl p-4 mb-4 flex-row items-center" style={{ backgroundColor: '#FEE2E2' }}>
+              <Text className="text-2xl mr-3">⚠️</Text>
+              <Text className="flex-1 text-sm font-medium" style={{ color: '#991B1B' }}>{error}</Text>
             </View>
           )}
 
           {processing && (
-            <View className="bg-blue-100 dark:bg-blue-900 rounded-lg p-4 mb-4">
-              <Text className="text-blue-800 dark:text-blue-200 mb-2">{currentStep}</Text>
-              <View className="bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+            <View className="rounded-3xl p-5 mb-4" style={{ backgroundColor: '#DBEAFE' }}>
+              <View className="flex-row items-center mb-3">
+                <ActivityIndicator color="#313131" size="small" />
+                <Text className="ml-3 text-base font-semibold" style={{ color: '#313131' }}>
+                  {currentStep}
+                </Text>
+              </View>
+              <View className="rounded-full h-3 overflow-hidden" style={{ backgroundColor: '#BFDBFE' }}>
                 <View
-                  className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full"
-                  style={{ width: `${progress}%` }}
+                  className="h-full rounded-full"
+                  style={{ width: `${progress}%`, backgroundColor: '#D4E95A' }}
                 />
               </View>
             </View>
           )}
 
+          {/* Submit Button */}
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={processing}
-            className={`bg-green-600 dark:bg-green-700 rounded-lg p-4 mb-4 ${processing ? 'opacity-50' : ''}`}
+            className="rounded-3xl py-4 mb-6 items-center"
+            style={{
+              backgroundColor: processing ? '#E5E7EB' : '#D4E95A',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: processing ? 0 : 0.15,
+              shadowRadius: 6,
+              elevation: processing ? 0 : 3,
+            }}
           >
             {processing ? (
-              <View className="flex-row items-center justify-center">
-                <ActivityIndicator color="white" />
-                <Text className="text-white font-semibold ml-2">Processing...</Text>
+              <View className="flex-row items-center">
+                <ActivityIndicator color="#313131" />
+                <Text className="ml-3 text-base font-bold" style={{ color: '#313131' }}>
+                  Processing...
+                </Text>
               </View>
             ) : (
-              <Text className="text-white font-semibold text-center">Submit</Text>
+                <Text className="text-lg font-bold" style={{ color: '#313131' }}>
+                  {mode === 'ai-recipe' ? '✨ Generate Recipe' : '🚀 Create Recipe'}
+                </Text>
             )}
           </TouchableOpacity>
         </ScrollView>
       </View>
     </View>
   );
-}
-
-// Keep default export for backward compatibility (if still used as a route)
-import { useRouter as useRouterHook } from 'expo-router';
-export default function AddGuideScreen() {
-  const router = useRouterHook();
-  return <AddGuide onClose={() => router.back()} />;
 }

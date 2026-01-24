@@ -11,6 +11,7 @@ import BottomSheet from '@gorhom/bottom-sheet';
 import { useMealPlannerStore } from '../src/lib/stores/mealPlannerStore';
 import { GuideSelectionSheet } from '../src/components/GuideSelectionSheet';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
+import { getAllCachedRecipes } from '../src/lib/recipeCache';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '☀️', color: '#FFE5B4' },
@@ -57,10 +58,50 @@ export default function MealPlannerScreen() {
     
     try {
       setLoadingGuides(true);
-      const data = await guidesAPI.getAll(userId, {}, null, 0);
-      setMyGuides(data.guides || []);
-    } catch {
-      // Silently handle - backend may be unavailable
+
+      // Load from both backend and cache
+      let backendGuides: any[] = [];
+      let cachedRecipes: any[] = [];
+
+      // Try to load from backend
+      try {
+        const data = await guidesAPI.getAll(userId, {}, null, 0);
+        backendGuides = data.guides || [];
+      } catch {
+        console.log('Backend unavailable, loading from cache only');
+      }
+
+      // Load cached recipes
+      try {
+        const cached = await getAllCachedRecipes();
+        // Transform cached recipes to match expected format
+        cachedRecipes = cached.map((recipe: any) => ({
+          id: recipe.id || recipe.idMeal || `cached_${Date.now()}_${Math.random()}`,
+          title: recipe.title || recipe.strMeal || 'Untitled Recipe',
+          type: 'recipe',
+          category: recipe.category,
+          summary: recipe.summary || recipe.strInstructions?.substring(0, 100),
+          image_url: recipe.image_url || recipe.strMealThumb || recipe.thumbnailUrl,
+        }));
+      } catch (error) {
+        console.error('Error loading cached recipes:', error);
+      }
+
+      // Merge backend and cached recipes, avoiding duplicates
+      const allGuides = [...backendGuides];
+      const backendIds = new Set(backendGuides.map((g: any) => g.id));
+
+      // Add cached recipes that aren't already in backend
+      for (const cached of cachedRecipes) {
+        if (!backendIds.has(cached.id)) {
+          allGuides.push(cached);
+        }
+      }
+
+      console.log(`📚 Loaded ${backendGuides.length} backend + ${cachedRecipes.length} cached = ${allGuides.length} total recipes for meal planner`);
+      setMyGuides(allGuides);
+    } catch (error) {
+      console.error('Error loading guides:', error);
       setMyGuides([]);
     } finally {
       setLoadingGuides(false);

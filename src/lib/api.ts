@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format, addDays, parseISO } from 'date-fns';
+import { cacheRecipe } from './recipeCache';
 
 // Get API URL from environment or use default
 // For production, update this to your garde server URL
@@ -139,6 +140,17 @@ export const guidesAPI = {
    */
   create: async (guideData: any) => {
     const response = await api.post('/api/guides', guideData);
+    const guide = response.data.guide || response.data;
+    
+    // Cache recipe if it's a recipe type
+    if (guide && (guide.type === 'recipe' || guideData.type === 'recipe')) {
+      try {
+        await cacheRecipe(guide);
+      } catch (error) {
+        console.error('Failed to cache recipe:', error);
+      }
+    }
+    
     return response.data;
   },
 
@@ -753,6 +765,18 @@ export const recipeAPI = {
     }, {
       timeout: 60000,
     });
+    
+    // Cache generated recipes
+    if (response.data.recipes && Array.isArray(response.data.recipes)) {
+      for (const recipe of response.data.recipes) {
+        try {
+          await cacheRecipe(recipe);
+        } catch (error) {
+          console.error('Failed to cache generated recipe:', error);
+        }
+      }
+    }
+    
     return response.data;
   },
 
@@ -779,6 +803,18 @@ export const recipeAPI = {
     }, {
       timeout: 60000,
     });
+    
+    // Cache generated recipes
+    if (response.data.recipes && Array.isArray(response.data.recipes)) {
+      for (const recipe of response.data.recipes) {
+        try {
+          await cacheRecipe(recipe);
+        } catch (error) {
+          console.error('Failed to cache generated recipe:', error);
+        }
+      }
+    }
+    
     return response.data;
   },
 
@@ -793,6 +829,17 @@ export const recipeAPI = {
     }, {
       timeout: 10000,
     });
+    
+    // Cache saved recipe
+    const savedGuide = response.data.guide || response.data;
+    if (savedGuide) {
+      try {
+        await cacheRecipe(savedGuide);
+      } catch (error) {
+        console.error('Failed to cache saved recipe:', error);
+      }
+    }
+    
     return response.data;
   },
 };

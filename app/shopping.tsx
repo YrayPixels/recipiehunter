@@ -4,7 +4,7 @@ import { ActivityIndicator, FlatList, RefreshControl, TouchableOpacity, View } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { ChevronLeft, Plus, Trash2, ShoppingCart, X } from 'react-native-feather';
-import { shoppingAPI, guidesAPI } from '../src/lib/api';
+import { shoppingAPI, guidesAPI, mealDBAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
 import { Alert } from '../src/components/Alert';
@@ -15,6 +15,7 @@ import { CreateFromMealPlanSheet } from '../src/components/shopping/CreateFromMe
 import { format, startOfWeek, addDays, parseISO } from 'date-fns';
 import { useIngredientsStore } from '../src/lib/stores/ingredientsStore';
 import { useMealPlannerStore } from '../src/lib/stores/mealPlannerStore';
+import { getAllCachedRecipes } from '../src/lib/recipeCache';
 
 interface ShoppingList {
   id: string;
@@ -130,10 +131,50 @@ export default function ShoppingScreen() {
     
     try {
       setLoadingRecipes(true);
-      const data = await guidesAPI.getAll(userId, { type: 'recipe' }, null, 0);
-      setMyRecipes(data.guides || []);
-    } catch {
-      // Silently handle - backend may be unavailable
+
+      // Load from both backend and cache
+      let backendRecipes: any[] = [];
+      let cachedRecipes: any[] = [];
+
+      // Try to load from backend
+      try {
+        const data = await guidesAPI.getAll(userId, { type: 'recipe' }, null, 0);
+        backendRecipes = data.guides || [];
+      } catch {
+        console.log('Backend unavailable, loading from cache only');
+      }
+
+      // Load cached recipes
+      try {
+        const cached = await getAllCachedRecipes();
+        // Transform cached recipes to match expected format
+        cachedRecipes = cached.map((recipe: any) => ({
+          id: recipe.id || recipe.idMeal || `cached_${Date.now()}_${Math.random()}`,
+          title: recipe.title || recipe.strMeal || 'Untitled Recipe',
+          type: 'recipe',
+          category: recipe.category,
+          summary: recipe.summary || recipe.strInstructions?.substring(0, 100),
+          image_url: recipe.image_url || recipe.strMealThumb || recipe.thumbnailUrl,
+        }));
+      } catch (error) {
+        console.error('Error loading cached recipes:', error);
+      }
+
+      // Merge backend and cached recipes, avoiding duplicates
+      const allRecipes = [...backendRecipes];
+      const backendIds = new Set(backendRecipes.map((r: any) => r.id));
+
+      // Add cached recipes that aren't already in backend
+      for (const cached of cachedRecipes) {
+        if (!backendIds.has(cached.id)) {
+          allRecipes.push(cached);
+        }
+      }
+
+      console.log(`📚 Loaded ${backendRecipes.length} backend + ${cachedRecipes.length} cached = ${allRecipes.length} total recipes for shopping`);
+      setMyRecipes(allRecipes);
+    } catch (error) {
+      console.error('Error loading recipes:', error);
       setMyRecipes([]);
     } finally {
       setLoadingRecipes(false);
@@ -252,13 +293,144 @@ export default function ShoppingScreen() {
     if (!userId) return;
 
     try {
-      await shoppingAPI.createFromGuide(userId, recipeId);
+      // Check if this is a cached recipe from TheMealDB (has numeric ID or cached_ prefix)
+      const isMealDBRecipe = recipeId.startsWith('cached_') || !isNaN(Number(recipeId));
+
+      if (isMealDBRecipe) {
+        // For cached MealDB recipes, we need to fetch full details and create shopping list locally
+        const meal = await mealDBAPI.getMealById(recipeId);
+        if (meal) {
+          const transformed = mealDBAPI.transformMeal(meal);
+          if (transformed && transformed.ingredients) {
+            // Parse ingredients and compare with user's ingredient box
+            const ingredientsList = transformed.ingredients.map((ingredient: string, index: number) => {
+              const trimmed = ingredient.trim();
+              // Pattern to match quantities at the start (e.g., "2 cups", "1/2 tsp", "500g")
+              const quantityPattern = /^([\d\/\.]+\s*(cup|cups|tbsp|tsp|oz|lb|g|kg|ml|l|piece|pieces|pcs|pkg|pack|can|cans|bunch|bunches|clove|cloves|head|heads|stalk|stalks|slice|slices)?\s*)/i;
+              const match = trimmed.match(quantityPattern);
+
+              let quantity: string | undefined;
+              let name: string;
+
+              if (match) {
+                quantity = match[1].trim();
+                name = trimmed.substring(match[0].length).trim() || trimmed;
+              } else {
+                name = trimmed;
+              }
+
+              return {
+                name: name || ingredient,
+                quantity: quantity || undefined,
+              };
+            });
+
+            // Compare with user's ingredient box
+            const userIngredientsMap = new Map<string, { name: string; quantity?: string }>();
+            (userIngredients || []).forEach(ing => {
+              userIngredientsMap.set(ing.name.toLowerCase().trim(), ing);
+            });
+
+            // Filter out ingredients the user already has (in sufficient quantity)
+            const itemsNeeded = ingredientsList.filter((ing, index) => {
+              const key = ing.name.toLowerCase().trim();
+              const userIng = userIngredientsMap.get(key);
+
+              if (!userIng) {
+                // User doesn't have this ingredient - need to buy
+                return true;
+              }
+
+              // User has this ingredient - try to compare quantities
+              const neededQty = parseQuantity(ing.quantity);
+              const availableQty = parseQuantity(userIng.quantity);
+
+              if (neededQty && availableQty && neededQty.unit === availableQty.unit) {
+                // Same units - can compare
+                if (availableQty.amount >= neededQty.amount) {
+                  // User has enough - don't add to shopping list
+                  return false;
+                } else {
+                  // User has some but not enough - add to shopping list
+                  return true;
+                }
+              }
+
+              // Can't compare quantities or different units - add to shopping list to be safe
+              return true;
+            }).map((ing, index) => ({
+              id: `${recipeId}-${index}-${Date.now()}`,
+              name: ing.name,
+              checked: false,
+              quantity: ing.quantity,
+            }));
+
+            if (itemsNeeded.length === 0) {
+              showAlert(
+                'All Ingredients Available!',
+                'You already have all the ingredients for this recipe in your ingredient box.',
+                'success'
+              );
+              createFromGuideSheetRef.current?.close();
+              return;
+            }
+
+            // Create the shopping list with only needed items
+            await shoppingAPI.create(
+              userId,
+              `${transformed.title} Ingredients`,
+              itemsNeeded,
+              [recipeId]
+            );
+
+            // Show success message with count
+            const totalIngredients = ingredientsList.length;
+            const alreadyHave = totalIngredients - itemsNeeded.length;
+            if (alreadyHave > 0) {
+              showAlert(
+                'Shopping List Created',
+                `Added ${itemsNeeded.length} items. You already have ${alreadyHave} ingredient${alreadyHave > 1 ? 's' : ''} in your box!`,
+                'success'
+              );
+            }
+          }
+        }
+      } else {
+      // For backend recipes, use the standard API call
+        await shoppingAPI.createFromGuide(userId, recipeId);
+      }
+
       createFromGuideSheetRef.current?.close();
       await loadShoppingLists();
     } catch (error) {
       console.error('Error creating list from recipe:', error);
       showAlert('Error', 'Failed to create shopping list from recipe', 'error');
     }
+  };
+
+  // Helper function to parse quantity (same logic as CreateFromMealPlanSheet)
+  const parseQuantity = (quantityStr?: string): { amount: number; unit: string } | null => {
+    if (!quantityStr) return null;
+
+    // Try to extract number and unit
+    const match = quantityStr.match(/^([\d\/\.]+)\s*(.*)$/);
+    if (match) {
+      let amount = 0;
+      const numStr = match[1];
+
+      // Handle fractions like 1/2
+      if (numStr.includes('/')) {
+        const parts = numStr.split('/');
+        amount = parseFloat(parts[0]) / parseFloat(parts[1]);
+      } else {
+        amount = parseFloat(numStr);
+      }
+
+      const unit = match[2].trim().toLowerCase();
+      return { amount, unit };
+    }
+
+    return null;
   };
 
   // Extract ingredients from meal plan

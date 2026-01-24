@@ -135,6 +135,37 @@ export async function setCachedRandomMeals(count: number, data: any[]) {
 }
 
 /**
+ * Get all cached recipes (not expired)
+ */
+export async function getAllCachedRecipes(): Promise<any[]> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    // Filter for recipe detail keys (mealdb_cache_recipe_*)
+    const recipeDetailPrefix = `${CACHE_PREFIX}recipe_`;
+    const recipeKeys = keys.filter(key => 
+      key.startsWith(recipeDetailPrefix) && 
+      key !== CACHE_KEYS.POPULAR_RECIPES &&
+      !key.includes('random_')
+    );
+    
+    // Get all valid (non-expired) cached recipes
+    const recipes: any[] = [];
+    for (const key of recipeKeys) {
+      const cached = await getCached(key);
+      if (cached) {
+        recipes.push(cached);
+      }
+    }
+    
+    console.log(`📦 Retrieved ${recipes.length} cached recipes`);
+    return recipes;
+  } catch (error) {
+    console.error('Error getting all cached recipes:', error);
+    return [];
+  }
+}
+
+/**
  * Count all cached recipe details
  */
 export async function countCachedRecipes(): Promise<number> {
@@ -162,5 +193,27 @@ export async function countCachedRecipes(): Promise<number> {
   } catch (error) {
     console.error('Error counting cached recipes:', error);
     return 0;
+  }
+}
+
+/**
+ * Cache a recipe (for generated/added recipes)
+ */
+export async function cacheRecipe(recipe: any): Promise<void> {
+  try {
+    if (!recipe.id) {
+      console.warn('Cannot cache recipe without id');
+      return;
+    }
+    
+    // Store the recipe with a long TTL since it's user-generated
+    await setCached(
+      CACHE_KEYS.RECIPE_DETAIL(recipe.id), 
+      recipe, 
+      365 * 24 * 60 * 60 * 1000 // 1 year TTL for user recipes
+    );
+    console.log(`💾 Cached recipe: ${recipe.title || recipe.id}`);
+  } catch (error) {
+    console.error('Error caching recipe:', error);
   }
 }

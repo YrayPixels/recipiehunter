@@ -1,13 +1,14 @@
-import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
-import { guidesAPI } from '../src/lib/api';
+import { guidesAPI, mealDBAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
 import { BottomSheet as BottomSheetComponent } from '../src/components/BottomSheet';
 import { AddGuide } from './add-guide';
+import { getAllCachedRecipes } from '../src/lib/recipeCache';
+import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
 
 interface Guide {
   id: string;
@@ -25,6 +26,18 @@ interface Guide {
   calories?: number;
 }
 
+interface RecipeDetails {
+  id: string;
+  title: string;
+  imageUrl: string;
+  category: string;
+  area: string;
+  ingredients: string[];
+  instructions: string[];
+  youtube?: string;
+  tags?: string[];
+}
+
 const categories = [
   { id: 'breakfast', label: 'Breakfast', icon: '🍳', image: require('../assets/images/icons/breakfast.png') },
   { id: 'lunch', label: 'Lunch', icon: '🍲', image: require('../assets/images/icons/lunch.png') },
@@ -32,15 +45,32 @@ const categories = [
   { id: 'desserts', label: 'Desserts', icon: '🍰', image: require('../assets/images/icons/desert.png') },
 ];
 
+interface FilterState {
+  difficulties: string[];
+  minRating: number | null;
+  maxTime: number | null;
+}
+
 export default function GuidesScreen() {
-  const router = useRouter();
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [filteredGuides, setFilteredGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('lunch');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const recipeDetailsSheetRef = useRef<BottomSheet>(null);
+  const filterSheetRef = useRef<BottomSheet>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
+  const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
+
+  // Filter state
+  const [filters, setFilters] = useState<FilterState>({
+    difficulties: [],
+    minRating: null,
+    maxTime: null,
+  });
 
   useEffect(() => {
     loadUserId();
@@ -53,6 +83,11 @@ export default function GuidesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, selectedCategory]);
 
+  useEffect(() => {
+    applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guides, filters]);
+
   const loadUserId = async () => {
     const id = await getUserId();
     setUserId(id);
@@ -63,14 +98,65 @@ export default function GuidesScreen() {
     
     try {
       setLoading(true);
-      const filters: any = {};
-      if (selectedCategory !== 'all') {
-        filters.category = selectedCategory;
+
+      // Load from both backend and cache
+      let backendGuides: Guide[] = [];
+      let cachedRecipes: Guide[] = [];
+
+      // Try to load from backend
+      try {
+        const filters: any = {};
+        if (selectedCategory !== 'all') {
+          filters.category = selectedCategory;
+        }
+        const data = await guidesAPI.getAll(userId, filters, null, 0);
+        backendGuides = data.guides || [];
+      } catch {
+        console.log('Backend unavailable, loading from cache only');
       }
-      const data = await guidesAPI.getAll(userId, filters, null, 0);
-      setGuides(data.guides || []);
-    } catch {
-      // Silently handle - backend may be unavailable
+
+      // Load cached recipes
+      try {
+        const cached = await getAllCachedRecipes();
+        // Transform cached recipes to match Guide interface
+        cachedRecipes = cached.map((recipe: any) => ({
+          id: recipe.id || recipe.idMeal || `cached_${Date.now()}_${Math.random()}`,
+          title: recipe.title || recipe.strMeal || 'Untitled Recipe',
+          type: 'recipe',
+          category: recipe.category || selectedCategory,
+          summary: recipe.summary || recipe.strInstructions?.substring(0, 100),
+          created_at: recipe.created_at || new Date().toISOString(),
+          image_url: recipe.image_url || recipe.strMealThumb || recipe.thumbnailUrl,
+          rating: recipe.rating,
+          duration: recipe.duration,
+          difficulty: recipe.difficulty,
+          tag: recipe.tag,
+          calories: recipe.calories,
+        }));
+
+        // Filter cached recipes by category if needed
+        if (selectedCategory !== 'all') {
+          cachedRecipes = cachedRecipes.filter(r => r.category === selectedCategory);
+        }
+      } catch (error) {
+        console.error('Error loading cached recipes:', error);
+      }
+
+      // Merge backend and cached recipes, avoiding duplicates
+      const allGuides = [...backendGuides];
+      const backendIds = new Set(backendGuides.map(g => g.id));
+
+      // Add cached recipes that aren't already in backend
+      for (const cached of cachedRecipes) {
+        if (!backendIds.has(cached.id)) {
+          allGuides.push(cached);
+        }
+      }
+
+      console.log(`📚 Loaded ${backendGuides.length} backend + ${cachedRecipes.length} cached = ${allGuides.length} total recipes`);
+      setGuides(allGuides);
+    } catch (error) {
+      console.error('Error loading guides:', error);
       setGuides([]);
     } finally {
       setLoading(false);
@@ -83,78 +169,194 @@ export default function GuidesScreen() {
     setRefreshing(false);
   };
 
+  const handleRecipePress = async (guide: Guide) => {
+    try {
+      setLoadingRecipeDetails(true);
+
+      // Check if this is a cached recipe from TheMealDB (has idMeal format or cached_ prefix)
+      const isMealDBRecipe = guide.id.startsWith('cached_') || !isNaN(Number(guide.id));
+
+      let recipeDetails: RecipeDetails | null = null;
+
+      if (isMealDBRecipe) {
+        // For MealDB recipes, fetch from MealDB API
+        const meal = await mealDBAPI.getMealById(guide.id);
+        if (meal) {
+          const transformed = mealDBAPI.transformMeal(meal);
+          if (transformed) {
+            recipeDetails = {
+              id: transformed.id,
+              title: transformed.title,
+              imageUrl: transformed.imageUrl,
+              category: transformed.category,
+              area: transformed.area,
+              ingredients: transformed.ingredients,
+              instructions: transformed.instructions,
+              youtube: transformed.youtube || undefined,
+              tags: transformed.tags || undefined,
+            };
+          }
+        }
+      } else {
+        // For backend guides, fetch from guidesAPI
+        const guideData = await guidesAPI.getById(guide.id);
+        if (guideData) {
+          recipeDetails = {
+            id: guideData.id,
+            title: guideData.title,
+            imageUrl: guideData.image_url || guide.image_url || '',
+            category: guideData.category || guide.category,
+            area: guideData.type || '',
+            ingredients: guideData.ingredients || [],
+            instructions: guideData.steps || [],
+            youtube: guideData.youtube,
+            tags: guideData.tips || [],
+          };
+        }
+      }
+
+      if (recipeDetails) {
+        setSelectedRecipe(recipeDetails);
+        recipeDetailsSheetRef.current?.expand();
+      }
+    } catch (error) {
+      console.error('Error loading recipe details:', error);
+    } finally {
+      setLoadingRecipeDetails(false);
+    }
+  };
+
+  const handleCloseRecipeDetailsSheet = () => {
+    recipeDetailsSheetRef.current?.close();
+    setSelectedRecipe(null);
+  };
+
+  const applyFilters = () => {
+    let filtered = [...guides];
+
+    // Filter by difficulty
+    if (filters.difficulties.length > 0) {
+      filtered = filtered.filter(guide =>
+        guide.difficulty && filters.difficulties.includes(guide.difficulty.toLowerCase())
+      );
+    }
+
+    // Filter by rating
+    if (filters.minRating !== null) {
+      filtered = filtered.filter(guide =>
+        guide.rating && guide.rating >= filters.minRating!
+      );
+    }
+
+    // Filter by time (convert duration string to minutes)
+    if (filters.maxTime !== null) {
+      filtered = filtered.filter(guide => {
+        if (!guide.duration) return true;
+        const timeMatch = guide.duration.match(/(\d+)/);
+        if (timeMatch) {
+          const minutes = parseInt(timeMatch[1]);
+          return minutes <= filters.maxTime!;
+        }
+        return true;
+      });
+    }
+
+    setFilteredGuides(filtered);
+  };
+
+  const toggleDifficultyFilter = (difficulty: string) => {
+    setFilters(prev => ({
+      ...prev,
+      difficulties: prev.difficulties.includes(difficulty)
+        ? prev.difficulties.filter(d => d !== difficulty)
+        : [...prev.difficulties, difficulty],
+    }));
+  };
+
+  const setRatingFilter = (rating: number | null) => {
+    setFilters(prev => ({ ...prev, minRating: rating }));
+  };
+
+  const setTimeFilter = (time: number | null) => {
+    setFilters(prev => ({ ...prev, maxTime: time }));
+  };
+
+  const clearAllFilters = () => {
+    setFilters({
+      difficulties: [],
+      minRating: null,
+      maxTime: null,
+    });
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.difficulties.length > 0) count++;
+    if (filters.minRating !== null) count++;
+    if (filters.maxTime !== null) count++;
+    return count;
+  };
+
   const getCategoryCount = (category: string) => {
-    if (category === 'all') return guides.length;
-    return guides.filter(g => g.category === category).length;
+    if (category === 'all') return filteredGuides.length;
+    return filteredGuides.filter(g => g.category === category).length;
   };
 
   const renderGuide = ({ item }: { item: Guide }) => {
-    const tagColor = item.tag === 'Classic' ? '#A855F7' : item.tag === 'Popular' ? '#fddffd' : '#3B82F6';
-    
     return (
       <TouchableOpacity
-        onPress={() => router.push(`/guide-detail?id=${item.id}`)}
-        className="bg-white rounded-3xl mb-4 overflow-hidden shadow-md"
-        activeOpacity={0.8}
+        onPress={() => handleRecipePress(item)}
+        className="mb-4 bg-brand-pink  rounded-3xl shadow p-2"
+        activeOpacity={0.7}
       >
-        {/* Recipe Image */}
-        <View className="w-full h-48 bg-gray-200 relative">
-          {item.image_url ? (
-            <Image
-              source={{ uri: item.image_url }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="w-full h-full items-center justify-center" style={{ backgroundColor: '#F6FBDE' }}>
-              <Text className="text-6xl">🍽️</Text>
-            </View>
-          )}
-          
-          {/* Tag Badge */}
-          {item.tag && (
-            <View
-              className="absolute top-3 left-3 px-3 py-1 rounded-full flex-row items-center"
-              style={{ backgroundColor: tagColor }}
-            >
-              <Text className="text-white text-xs font-semibold">
-                {item.tag === 'Classic' && '🍴 '}
-                {item.tag === 'Popular' && '🔥 '}
-                {item.tag}
-              </Text>
-            </View>
-          )}
-        </View>
+        <View className="overflow-hidden">
+          {/* Recipe Image - Left Side (60%) */}
+          <View style={{ position: 'relative' }} className='rounded-[20px]  h-[150px] overflow-hidden '>
+            {item.image_url ? (
+              <Image
+                source={{ uri: item.image_url }}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            ) : (
+                <View
+                  className="w-full h-full items-center justify-center"
+                  style={{ backgroundColor: '#FEF7E6' }}
+                >
+                <Text style={{ fontSize: 72 }}>🍽️</Text>
+              </View>
+            )}
+          </View>
 
-        {/* Recipe Info */}
-        <View className="p-4">
-          <Text className="text-xl font-bold mb-1" style={{ color: '#313131' }} numberOfLines={1}>
-            {item.title}
-          </Text>
-          {item.summary && (
-            <Text className="text-sm mb-3" style={{ color: '#313131' }} numberOfLines={2}>
-              {item.summary}
-            </Text>
-          )}
-          
-          {/* Stats Row */}
-          <View className="flex-row items-center justify-between">
-            {item.rating && (
-              <View className="flex-row items-center">
-                <Text className="mr-1" style={{ color: '#D4E95A' }}>★</Text>
-                <Text className="text-sm font-medium" style={{ color: '#313131' }}>{item.rating}</Text>
+          <View style={{ padding: 16, justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, justifyContent: 'center', marginVertical: 8 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1F2937', marginBottom: 4 }} numberOfLines={2}>
+                {item.title}
+              </Text>
+              {item.summary && (
+                <Text style={{ fontSize: 13, color: '#4B5563', lineHeight: 18 }} numberOfLines={2}>
+                  {item.summary}
+                </Text>
+              )}
+            </View>
+
+            {/* Stats badges at bottom */}
+            <View style={{ gap: 6 }} className="flex-row items-center justify-start">
+
+              <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, alignSelf: 'flex-start' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1F2937' }}>⭐ 4.9</Text>
               </View>
-            )}
-            {item.duration && (
-              <View className="flex-row items-center">
-                <Text className="text-sm" style={{ color: '#313131' }}>{item.duration}</Text>
+
+              <View style={{ backgroundColor: '#E0E7FF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, alignSelf: 'flex-start' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1F2937' }}>🕐 30min</Text>
               </View>
-            )}
-            {item.difficulty && (
-              <View className="px-2 py-1 rounded-full" style={{ backgroundColor: '#F6FBDE' }}>
-                <Text className="text-xs capitalize" style={{ color: '#313131' }}>{item.difficulty}</Text>
+
+
+              <View style={{ backgroundColor: '#FFEDD5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, alignSelf: 'flex-start' }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#1F2937', textTransform: 'capitalize' }}>📊 Easy</Text>
               </View>
-            )}
+
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -208,51 +410,60 @@ export default function GuidesScreen() {
             </View>
           </View>
 
-          {/* Recipe Count and View Toggle */}
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold" style={{ color: '#313131' }}>
+          {/* Recipe Count and Action Buttons */}
+          <View className="flex-row items-center justify-between  px-4">
+            <Text className="text-2xl font-bold" style={{ color: '#1F2937' }}>
               {categoryCount} {selectedCategory === 'lunch' ? 'lunches' : selectedCategory === 'breakfast' ? 'breakfasts' : selectedCategory === 'drinks' ? 'drinks' : 'desserts'}
             </Text>
-            <View className="flex-row items-center">
+            <View className="flex-row items-center gap-3">
               <TouchableOpacity
                 onPress={() => bottomSheetRef.current?.expand()}
-                className="px-4 py-2 rounded-full mr-2"
+                className="px-4 py-2.5 rounded-3xl"
                 style={{ backgroundColor: '#D4E95A' }}
               >
-                <Text className="font-semibold" style={{ color: '#313131' }}>+ Add</Text>
+                <Text className="font-bold" style={{ color: '#1F2937' }}>+ Add</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                className="p-2 mr-2"
-              >
-                <Text style={{ color: '#313131' }}>{viewMode === 'grid' ? '☰' : '⊞'}</Text>
-              </TouchableOpacity>
-              <Text style={{ color: '#313131' }}>3</Text>
             </View>
           </View>
         </View>
 
         {/* Recipe List */}
         <FlatList
-          data={guides}
+          data={filteredGuides}
           renderItem={renderGuide}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80, paddingTop: 16 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           ListEmptyComponent={
             <View className="items-center justify-center py-20">
-              <Text className="text-center mb-4 text-lg" style={{ color: '#313131' }}>
-                No recipes yet
+              <Text className="text-6xl mb-4">{getActiveFilterCount() > 0 ? '🔍' : '🍽️'}</Text>
+              <Text className="text-center mb-2 text-xl font-bold" style={{ color: '#1F2937' }}>
+                {getActiveFilterCount() > 0 ? 'No matching recipes' : 'No recipes yet'}
               </Text>
-              <TouchableOpacity
-                onPress={() => bottomSheetRef.current?.expand()}
-                className="px-6 py-3 rounded-full"
-                style={{ backgroundColor: '#D4E95A' }}
-              >
-                <Text className="font-semibold" style={{ color: '#313131' }}>Create Your First Recipe</Text>
-              </TouchableOpacity>
+              <Text className="text-center mb-6 text-sm px-8" style={{ color: '#6B7280' }}>
+                {getActiveFilterCount() > 0
+                  ? 'Try adjusting your filters to see more recipes'
+                  : 'Start building your recipe collection'}
+              </Text>
+              {getActiveFilterCount() > 0 ? (
+                <TouchableOpacity
+                  onPress={clearAllFilters}
+                  className="px-6 py-3 rounded-3xl"
+                  style={{ backgroundColor: '#D4E95A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
+                >
+                  <Text className="font-bold text-base" style={{ color: '#1F2937' }}>Clear Filters</Text>
+                </TouchableOpacity>
+              ) : (
+                  <TouchableOpacity
+                    onPress={() => bottomSheetRef.current?.expand()}
+                    className="px-6 py-3 rounded-3xl"
+                    style={{ backgroundColor: '#D4E95A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
+                  >
+                    <Text className="font-bold text-base" style={{ color: '#1F2937' }}>+ Create Your First Recipe</Text>
+                  </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -270,6 +481,135 @@ export default function GuidesScreen() {
             loadGuides();
           }}
         />
+      </BottomSheetComponent>
+
+      {/* Recipe Details Bottom Sheet */}
+      <RecipeDetailsSheet
+        bottomSheetRef={recipeDetailsSheetRef}
+        selectedRecipe={selectedRecipe}
+        loadingRecipeDetails={loadingRecipeDetails}
+        onClose={handleCloseRecipeDetailsSheet}
+      />
+
+      {/* Filter Bottom Sheet */}
+      <BottomSheetComponent
+        bottomSheetRef={filterSheetRef}
+        snapPoints={['70%']}
+        onClose={() => filterSheetRef.current?.close()}
+        backgroundStyle={{ backgroundColor: '#F6FBDE' }}
+      >
+        <View className="px-6 pb-6">
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-6">
+            <Text className="text-2xl font-bold" style={{ color: '#1F2937' }}>
+              Filters
+            </Text>
+            <TouchableOpacity
+              onPress={clearAllFilters}
+              className="px-4 py-2 rounded-xl"
+              style={{ backgroundColor: '#E5E7EB' }}
+            >
+              <Text className="font-semibold" style={{ color: '#1F2937' }}>
+                Clear All
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Difficulty Filter */}
+          <View className="mb-6">
+            <Text className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>
+              Difficulty
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {['easy', 'medium', 'hard'].map((difficulty) => (
+                <TouchableOpacity
+                  key={difficulty}
+                  onPress={() => toggleDifficultyFilter(difficulty)}
+                  className="px-4 py-2.5 rounded-xl"
+                  style={{
+                    backgroundColor: filters.difficulties.includes(difficulty) ? '#D4E95A' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: filters.difficulties.includes(difficulty) ? '#D4E95A' : '#E5E7EB',
+                  }}
+                >
+                  <Text
+                    className="font-semibold capitalize"
+                    style={{ color: '#1F2937' }}
+                  >
+                    {difficulty}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Rating Filter */}
+          <View className="mb-6">
+            <Text className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>
+              Minimum Rating
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {[3, 3.5, 4, 4.5, 5].map((rating) => (
+                <TouchableOpacity
+                  key={rating}
+                  onPress={() => setRatingFilter(filters.minRating === rating ? null : rating)}
+                  className="px-4 py-2.5 rounded-xl flex-row items-center"
+                  style={{
+                    backgroundColor: filters.minRating === rating ? '#D4E95A' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: filters.minRating === rating ? '#D4E95A' : '#E5E7EB',
+                  }}
+                >
+                  <Text className="font-semibold mr-1" style={{ color: '#1F2937' }}>
+                    ⭐
+                  </Text>
+                  <Text className="font-semibold" style={{ color: '#1F2937' }}>
+                    {rating}+
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Time Filter */}
+          <View className="mb-6">
+            <Text className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>
+              Maximum Time
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {[15, 30, 45, 60, 90].map((time) => (
+                <TouchableOpacity
+                  key={time}
+                  onPress={() => setTimeFilter(filters.maxTime === time ? null : time)}
+                  className="px-4 py-2.5 rounded-xl flex-row items-center"
+                  style={{
+                    backgroundColor: filters.maxTime === time ? '#D4E95A' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: filters.maxTime === time ? '#D4E95A' : '#E5E7EB',
+                  }}
+                >
+                  <Text className="font-semibold mr-1" style={{ color: '#1F2937' }}>
+                    🕐
+                  </Text>
+                  <Text className="font-semibold" style={{ color: '#1F2937' }}>
+                    {time} min
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Apply Button */}
+          <TouchableOpacity
+            onPress={() => filterSheetRef.current?.close()}
+            className="py-4 rounded-3xl items-center"
+            style={{ backgroundColor: '#D4E95A' }}
+          >
+            <Text className="text-base font-bold" style={{ color: '#1F2937' }}>
+              Apply Filters
+            </Text>
+          </TouchableOpacity>
+        </View>
       </BottomSheetComponent>
     </SafeAreaView>
   );
