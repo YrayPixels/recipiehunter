@@ -1,0 +1,38 @@
+{
+  "build": {
+    "apk": {
+      "channel": "production",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "dapp-store": {
+      "channel": "production",
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "local"
+      }
+    },
+    "test": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "test"
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "withoutCredentials": false
+      },
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "developmentClient": false,
+      "channel": "production"
+    }
+  }
+}

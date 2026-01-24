@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "Recipe Hunter",
+    "slug": "recipe-hunter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/logo_bg.png",
+    "scheme": "recipe-hunter",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/logo_no_bg.png",
+        "backgroundImage": "./assets/images/logo_bg.png",
+        "monochromeImage": "./assets/images/logo_no_bg.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true,
+      "useLegacyPackaging": true,
+      "package": "com.yraylabs.recipehunter",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.FOREGROUND_SERVICE"
+      ],
+      "versionCode": 1
+    },
+    "ios": {
+      "bundleIdentifier": "com.yraylabs.recipehunter",
+      "supportsTablet": true
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/logo_no_bg.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/logo_bg.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/logo_no_bg.png",
+          "color": "#5a7a5a",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-secure-store"
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": ""
+      },
+      "apiUrl": "http://localhost:3001"
+    },
+    "runtimeVersion": "1.1.1",
+    "updates": {
+      "url": ""
+    }
+  }
+}
