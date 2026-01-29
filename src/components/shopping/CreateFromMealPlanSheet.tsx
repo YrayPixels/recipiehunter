@@ -33,13 +33,13 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
   // Parse quantity from string (basic implementation)
   const parseQuantity = (quantityStr?: string): { amount: number; unit: string } | null => {
     if (!quantityStr) return null;
-    
+
     // Try to extract number and unit
     const match = quantityStr.match(/^([\d\/\.]+)\s*(.*)$/);
     if (match) {
       let amount = 0;
       const numStr = match[1];
-      
+
       // Handle fractions like 1/2
       if (numStr.includes('/')) {
         const parts = numStr.split('/');
@@ -47,11 +47,11 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
       } else {
         amount = parseFloat(numStr);
       }
-      
+
       const unit = match[2].trim().toLowerCase();
       return { amount, unit };
     }
-    
+
     return null;
   };
 
@@ -70,7 +70,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
     return mealPlanIngredients.map(mealIng => {
       const key = mealIng.name.toLowerCase().trim();
       const userIng = userIngredientsMap.get(key);
-      
+
       if (!userIng) {
         // User doesn't have this ingredient at all
         return {
@@ -123,7 +123,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
     const total = comparedIngredients.length;
     const needToBuy = comparedIngredients.filter(ing => ing.difference !== 'full').length;
     const haveEnough = comparedIngredients.filter(ing => ing.difference === 'full').length;
-    
+
     return { total, needToBuy, haveEnough };
   }, [comparedIngredients]);
 
@@ -187,7 +187,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
         </BottomSheetComponent>
       );
     }
-    
+
     return (
       <BottomSheetComponent
         bottomSheetRef={bottomSheetRef}
@@ -201,7 +201,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
           <Text className="text-sm space-regular mb-6" style={{ color: '#666' }}>
             Generate a shopping list from your meal plan and compare with your ingredient box
           </Text>
-          
+
           <View className="bg-white rounded-3xl p-4 mb-4 border border-brand-green">
             <View className="flex-row items-center mb-2">
               <Calendar width={20} height={20} color="#313131" />
@@ -213,7 +213,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
               {stats.total} ingredients found in your planned meals
             </Text>
             <View className="flex-row gap-2">
-              <View className="flex-1 bg-gray-100 rounded-xl p-2">
+              <View className="flex-1 bg-gray-100 rounded-lg p-2">
                 <Text className="text-xs space-regular" style={{ color: '#666' }}>
                   Your Ingredient Box
                 </Text>
@@ -221,7 +221,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
                   {(userIngredients || []).length}
                 </Text>
               </View>
-              <View className="flex-1 bg-gray-100 rounded-xl p-2">
+              <View className="flex-1 bg-gray-100 rounded-lg p-2">
                 <Text className="text-xs space-regular" style={{ color: '#666' }}>
                   Meal Plan Needs
                 </Text>
@@ -267,7 +267,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
         <Text className="text-2xl space-bold mb-2" style={{ color: '#313131' }}>
           Ingredient Comparison
         </Text>
-        
+
         {/* Summary Stats */}
         <View className="flex-row gap-2 mb-4">
           <View className="flex-1 bg-white rounded-3xl p-3 border border-gray-200">
@@ -335,7 +335,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
                     {ing.needed}
                   </Text>
                 </View>
-                
+
                 {ing.available && (
                   <View className="flex-row justify-between">
                     <Text className="text-xs space-regular" style={{ color: '#666' }}>

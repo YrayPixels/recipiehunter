@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
+import { useLocalSearchParams } from 'expo-router';
 import { guidesAPI, mealDBAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
@@ -39,10 +40,13 @@ interface RecipeDetails {
 }
 
 const categories = [
+  { id: 'all', label: 'All', icon: '📚' },
   { id: 'breakfast', label: 'Breakfast', icon: '🍳', image: require('../assets/images/icons/breakfast.png') },
   { id: 'lunch', label: 'Lunch', icon: '🍲', image: require('../assets/images/icons/lunch.png') },
+  { id: 'dinner', label: 'Dinner', icon: '🍽️', image: require('../assets/images/icons/lunch.png') },
   { id: 'drinks', label: 'Drinks', icon: '🥤', image: require('../assets/images/icons/drink.png') },
-  { id: 'desserts', label: 'Desserts', icon: '🍰', image: require('../assets/images/icons/desert.png') },
+  { id: 'dessert', label: 'Dessert', icon: '🍰', image: require('../assets/images/icons/desert.png') },
+  { id: 'snack', label: 'Snack', icon: '🍿', image: require('../assets/images/icons/breakfast.png') },
 ];
 
 interface FilterState {
@@ -52,12 +56,13 @@ interface FilterState {
 }
 
 export default function GuidesScreen() {
+  const params = useLocalSearchParams<{ category?: string }>();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [filteredGuides, setFilteredGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('lunch');
+  const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'lunch');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const bottomSheetRef = useRef<BottomSheet>(null);
   const recipeDetailsSheetRef = useRef<BottomSheet>(null);
@@ -75,6 +80,13 @@ export default function GuidesScreen() {
   useEffect(() => {
     loadUserId();
   }, []);
+
+  // Update selected category when route params change
+  useEffect(() => {
+    if (params.category) {
+      setSelectedCategory(params.category);
+    }
+  }, [params.category]);
 
   useEffect(() => {
     if (userId) {
@@ -106,7 +118,7 @@ export default function GuidesScreen() {
       // Try to load from backend
       try {
         const filters: any = {};
-        if (selectedCategory !== 'all') {
+        if (selectedCategory && selectedCategory !== 'all') {
           filters.category = selectedCategory;
         }
         const data = await guidesAPI.getAll(userId, filters, null, 0);
@@ -135,7 +147,7 @@ export default function GuidesScreen() {
         }));
 
         // Filter cached recipes by category if needed
-        if (selectedCategory !== 'all') {
+        if (selectedCategory && selectedCategory !== 'all') {
           cachedRecipes = cachedRecipes.filter(r => r.category === selectedCategory);
         }
       } catch (error) {
@@ -199,17 +211,19 @@ export default function GuidesScreen() {
         }
       } else {
         // For backend guides, fetch from guidesAPI
-        const guideData = await guidesAPI.getById(guide.id);
-        if (guideData) {
+        const response = await guidesAPI.getById(guide.id);
+        // The API returns { guide: recipe, recipe: recipe } - extract the actual recipe data
+        const guideData = response?.guide || response?.recipe || response;
+        if (guideData && guideData.id) {
           recipeDetails = {
             id: guideData.id,
             title: guideData.title,
-            imageUrl: guideData.image_url || guide.image_url || '',
+            imageUrl: guideData.image_url || guideData.thumbnailUrl || guide.image_url || '',
             category: guideData.category || guide.category,
-            area: guideData.type || '',
+            area: guideData.cuisine || guideData.type || '',
             ingredients: guideData.ingredients || [],
             instructions: guideData.steps || [],
-            youtube: guideData.youtube,
+            youtube: guideData.youtube || guideData.youtubeUrl,
             tags: guideData.tips || [],
           };
         }
@@ -376,44 +390,50 @@ export default function GuidesScreen() {
   const categoryCount = getCategoryCount(selectedCategory);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
       <View className="flex-1">
-        {/* Category Navigation */}
-        <View className="px-4 pt-4 pb-2">
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row flex-1">
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  onPress={() => setSelectedCategory(cat.id)}
-                  className="items-center flex-1"
-                  activeOpacity={0.7}
+        {/* Category Navigation - Horizontal Scroll */}
+        <View className="pt-4 pb-2">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          >
+            {categories.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                onPress={() => setSelectedCategory(cat.id)}
+                className="items-center mr-4"
+                activeOpacity={0.7}
+              >
+                <View
+                  className="w-16 h-16 overflow-hidden rounded-full items-center justify-center mb-1"
+                  style={{
+                    backgroundColor: selectedCategory === cat.id ? '#D4E95A' : '#FFFFFF',
+                  }}
                 >
-                  <View
-                    className="w-24 h-24 overflow-hidden rounded-full items-center justify-center mb-1"
-                    style={{
-                      backgroundColor: selectedCategory === cat.id ? '#D4E95A' : '#FFFFFF',
-                    }}
-                  >
-                    <Image source={cat.image} className="w-24 h-24" resizeMode="contain" />
-                  </View>
-                  <Text
-                    className="text-base font-medium"
-                    style={{
-                      color: selectedCategory === cat.id ? '#313131' : '#313131',
-                    }}
-                  >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+                  {cat.image ? (
+                    <Image source={cat.image} className="w-16 h-16" resizeMode="contain" />
+                  ) : (
+                    <Text className="text-2xl">{cat.icon}</Text>
+                  )}
+                </View>
+                <Text
+                  className="text-sm font-medium"
+                  style={{
+                    color: selectedCategory === cat.id ? '#313131' : '#6B7280',
+                  }}
+                >
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           {/* Recipe Count and Action Buttons */}
-          <View className="flex-row items-center justify-between  px-4">
+          <View className="flex-row items-center justify-between px-4 mt-3">
             <Text className="text-2xl font-bold" style={{ color: '#1F2937' }}>
-              {categoryCount} {selectedCategory === 'lunch' ? 'lunches' : selectedCategory === 'breakfast' ? 'breakfasts' : selectedCategory === 'drinks' ? 'drinks' : 'desserts'}
+              {categoryCount} {selectedCategory === 'all' ? 'recipes' : selectedCategory}
             </Text>
             <View className="flex-row items-center gap-3">
               <TouchableOpacity
@@ -428,14 +448,13 @@ export default function GuidesScreen() {
         </View>
 
         {/* Recipe List */}
-        <View className='flex-1 px-4 py-4'>
+        <View className='flex-1'>
           <FlatList
-            className='flex-1 '
             data={filteredGuides}
             showsVerticalScrollIndicator={false}
             renderItem={renderGuide}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
@@ -510,7 +529,7 @@ export default function GuidesScreen() {
             </Text>
             <TouchableOpacity
               onPress={clearAllFilters}
-              className="px-4 py-2 rounded-xl"
+              className="px-4 py-2 rounded-lg"
               style={{ backgroundColor: '#E5E7EB' }}
             >
               <Text className="font-semibold" style={{ color: '#1F2937' }}>
@@ -529,7 +548,7 @@ export default function GuidesScreen() {
                 <TouchableOpacity
                   key={difficulty}
                   onPress={() => toggleDifficultyFilter(difficulty)}
-                  className="px-4 py-2.5 rounded-xl"
+                  className="px-4 py-2.5 rounded-lg"
                   style={{
                     backgroundColor: filters.difficulties.includes(difficulty) ? '#D4E95A' : '#FFFFFF',
                     borderWidth: 1,
@@ -557,7 +576,7 @@ export default function GuidesScreen() {
                 <TouchableOpacity
                   key={rating}
                   onPress={() => setRatingFilter(filters.minRating === rating ? null : rating)}
-                  className="px-4 py-2.5 rounded-xl flex-row items-center"
+                  className="px-4 py-2.5 rounded-lg flex-row items-center"
                   style={{
                     backgroundColor: filters.minRating === rating ? '#D4E95A' : '#FFFFFF',
                     borderWidth: 1,
@@ -585,7 +604,7 @@ export default function GuidesScreen() {
                 <TouchableOpacity
                   key={time}
                   onPress={() => setTimeFilter(filters.maxTime === time ? null : time)}
-                  className="px-4 py-2.5 rounded-xl flex-row items-center"
+                  className="px-4 py-2.5 rounded-lg flex-row items-center"
                   style={{
                     backgroundColor: filters.maxTime === time ? '#D4E95A' : '#FFFFFF',
                     borderWidth: 1,

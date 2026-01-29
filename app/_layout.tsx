@@ -213,10 +213,12 @@ function LayoutWithBottomNav({ children }: { children: React.ReactNode }) {
 
   return (
     <View className="flex-1">
-      {children}
+      <View className="flex-1" >
+        {children}
+      </View>
       {!hideBottomNav && (
         <SafeAreaView style={{ backgroundColor: pathname?.startsWith('/settings') ? '#fddffd' : '#F6FBDE' }}
-          className="bg-transparent border border-blue-500" edges={['bottom']}>
+          className="bg-transparent" edges={['bottom']}>
           <BottomNavigation />
         </SafeAreaView>
       )}

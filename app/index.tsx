@@ -76,7 +76,8 @@ export default function DashboardScreen() {
       // Try to get recent guides count from API (optional) - using safe version that never throws
       const userId = await getUserId();
       const data = await guidesAPI.getStatsSafe(userId);
-      const recentGuides = data?.recent || 0;
+      // Get the count of recipes from database (stats.recent or stats.totalRecipes)
+      const recentGuides = data?.stats?.recent || data?.stats?.totalRecipes || 0;
 
       setStats({
         totalRecipes: totalRecipes || 0,
@@ -386,22 +387,30 @@ export default function DashboardScreen() {
           </View>
 
           <View className="flex-row mb-6">
-            <View className="flex-1 bg-brand-pink rounded-3xl p-4 shadow mr-2">
+            <TouchableOpacity
+              className="flex-1 bg-brand-pink rounded-3xl p-4 shadow mr-2"
+              activeOpacity={0.7}
+              onPress={() => router.push('/guides?category=all')}
+            >
               <Text className="text-2xl space-bold">
                 {stats.totalRecipes}
               </Text>
               <Text className="text-sm space-regular" style={{ color: '#313131' }}>
                 Total Recipes
               </Text>
-            </View>
-            <View className="flex-1 bg-brand-pink rounded-3xl p-4 shadow">
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 bg-brand-pink rounded-3xl p-4 shadow"
+              activeOpacity={0.7}
+              onPress={() => router.push('/guides?category=all')}
+            >
               <Text className="text-2xl space-bold" style={{ color: '#313131' }}>
                 {stats.recentGuides}
               </Text>
               <Text className="text-sm space-regular" style={{ color: '#313131' }}>
                 Recent
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Menu Grid */}

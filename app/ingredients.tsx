@@ -244,14 +244,14 @@ export default function IngredientsScreen() {
               <View className="flex-row gap-2">
                 <TouchableOpacity
                   onPress={() => handleEdit(item)}
-                  className="bg-gray-100 rounded-xl p-2"
+                  className="bg-gray-100 rounded-lg p-2"
                   activeOpacity={0.7}
                 >
                   <Edit2 width={18} height={18} color="#313131" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => removeIngredient(item.id)}
-                  className="bg-red-100 rounded-xl p-2"
+                  className="bg-red-100 rounded-lg p-2"
                   activeOpacity={0.7}
                 >
                   <Trash2 width={18} height={18} color="#EF4444" />

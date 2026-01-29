@@ -75,16 +75,16 @@ export const Input: React.FC<InputProps> = ({
       hasError
         ? 'border-red-500 dark:border-red-500'
         : isFocused
-        ? 'border-primary dark:border-primary'
-        : 'border-input dark:border-gray-700'
+          ? 'border-primary dark:border-primary'
+          : 'border-input dark:border-gray-700'
     ),
     outlined: cn(
       'bg-transparent border-2',
       hasError
         ? 'border-red-500 dark:border-red-500'
         : isFocused
-        ? 'border-primary dark:border-primary'
-        : 'border-input dark:border-gray-700'
+          ? 'border-primary dark:border-primary'
+          : 'border-input dark:border-gray-700'
     ),
     filled: cn(
       'bg-gray-100 dark:bg-gray-800 border-0',
@@ -119,7 +119,7 @@ export const Input: React.FC<InputProps> = ({
       {/* Input Container */}
       <View
         className={cn(
-          'flex-row items-center rounded-xl',
+          'flex-row items-center rounded-lg',
           variantStyles[variant],
           currentSize.container,
           disabled && 'opacity-50',

@@ -143,7 +143,7 @@ export default function GuideDetailScreen() {
           {/* Nutritional Information Table */}
           {(guide.protein || guide.fat || guide.carbs) && (
             <View className="px-4 mb-6">
-              <View className="bg-white rounded-xl p-4">
+              <View className="bg-white rounded-lg p-4">
                 <View className="flex-row justify-between items-center border-b pb-3 mb-3" style={{ borderColor: '#F6FBDE' }}>
                   <Text className="text-sm font-semibold" style={{ color: '#313131' }}>protein</Text>
                   <Text className="text-sm font-medium" style={{ color: '#313131' }}>

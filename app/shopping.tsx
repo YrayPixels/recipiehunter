@@ -44,7 +44,7 @@ export default function ShoppingScreen() {
   const [loadingRecipes, setLoadingRecipes] = useState(false);
   const [mealPlanIngredients, setMealPlanIngredients] = useState<{ name: string; quantity?: string }[]>([]);
   const [loadingMealPlan, setLoadingMealPlan] = useState(false);
-  
+
   // Alert state
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
@@ -57,17 +57,17 @@ export default function ShoppingScreen() {
     message: '',
     type: 'info',
   });
-  
+
   // Get user's ingredients from store
   const { ingredients: userIngredients, loadIngredients } = useIngredientsStore();
   const { meals } = useMealPlannerStore();
-  
+
   // Bottom sheets
   const createListSheetRef = useRef<BottomSheet>(null);
   const addItemSheetRef = useRef<BottomSheet>(null);
   const createFromGuideSheetRef = useRef<BottomSheet>(null);
   const createFromMealPlanSheetRef = useRef<BottomSheet>(null);
-  
+
   // Form states
   const [newListName, setNewListName] = useState('');
   const [newItemName, setNewItemName] = useState('');
@@ -128,7 +128,7 @@ export default function ShoppingScreen() {
 
   const loadMyRecipes = async () => {
     if (!userId) return;
-    
+
     try {
       setLoadingRecipes(true);
 
@@ -239,7 +239,7 @@ export default function ShoppingScreen() {
 
       const updatedItems = [...selectedList.items, newItem];
       await shoppingAPI.update(selectedList.id, { items: updatedItems });
-      
+
       setNewItemName('');
       setNewItemQuantity('');
       addItemSheetRef.current?.close();
@@ -396,7 +396,7 @@ export default function ShoppingScreen() {
           }
         }
       } else {
-      // For backend recipes, use the standard API call
+        // For backend recipes, use the standard API call
         await shoppingAPI.createFromGuide(userId, recipeId);
       }
 
@@ -437,11 +437,11 @@ export default function ShoppingScreen() {
   const extractMealPlanIngredients = async () => {
     try {
       setLoadingMealPlan(true);
-      
+
       // Calculate current week range
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
       const weekEnd = addDays(weekStart, 6);
-      
+
       // Filter meals for current week
       const weekMeals = meals.filter((meal) => {
         try {
@@ -451,25 +451,25 @@ export default function ShoppingScreen() {
           return false;
         }
       });
-      
+
       console.log('📅 Week meals found:', weekMeals.length);
-      
+
       if (weekMeals.length === 0) {
         showAlert('No Meals', 'No meals found in your meal plan for this week. Please add some meals first.', 'info');
         setMealPlanIngredients([]);
         return [];
       }
-      
+
       // Extract all ingredients with deduplication
       const ingredientMap = new Map<string, { name: string; quantity?: string; count: number }>();
       let totalIngredientsFound = 0;
-      
+
       // Process each meal and try to get ingredients
       for (const meal of weekMeals) {
         console.log(`🍽️ Processing meal: ${meal.guideTitle}`);
-        
+
         let ingredientsList: string[] = [];
-        
+
         // First, try to get ingredients from the meal object itself
         if (meal.ingredients && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
           ingredientsList = meal.ingredients;
@@ -489,30 +489,30 @@ export default function ShoppingScreen() {
             console.error(`  ❌ Error fetching guide ${meal.guideId}:`, error);
           }
         }
-        
+
         // Process the ingredients
         ingredientsList.forEach((ingredient: string) => {
           const trimmed = ingredient.trim();
           if (!trimmed) return;
-          
+
           totalIngredientsFound++;
-          
+
           // Parse quantity and name
           const quantityPattern = /^([\d\/\.]+\s*(cup|cups|tbsp|tsp|oz|lb|g|kg|ml|l|piece|pieces|pcs|pkg|pack|can|cans|bunch|bunches|clove|cloves|head|heads|stalk|stalks|slice|slices)?\s*)/i;
           const match = trimmed.match(quantityPattern);
-          
+
           let quantity: string | undefined;
           let name: string;
-          
+
           if (match) {
             quantity = match[1].trim();
             name = trimmed.substring(match[0].length).trim() || trimmed;
           } else {
             name = trimmed;
           }
-          
+
           const key = name.toLowerCase();
-          
+
           if (ingredientMap.has(key)) {
             const existing = ingredientMap.get(key)!;
             existing.count += 1;
@@ -529,24 +529,24 @@ export default function ShoppingScreen() {
           }
         });
       }
-      
+
       console.log(`📊 Total ingredients found: ${totalIngredientsFound}`);
       console.log(`📊 Unique ingredients: ${ingredientMap.size}`);
-      
+
       // Convert to array
       const ingredients = Array.from(ingredientMap.values()).map(info => ({
         name: info.name,
         quantity: info.quantity,
       }));
-      
+
       if (ingredients.length === 0) {
         showAlert(
-          'No Ingredients Found', 
+          'No Ingredients Found',
           'The meals in your plan don\'t have ingredient information. Try adding meals from your recipes that include ingredients.',
           'info'
         );
       }
-      
+
       setMealPlanIngredients(ingredients);
       return ingredients;
     } catch (error) {
@@ -570,7 +570,7 @@ export default function ShoppingScreen() {
     try {
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
       const startDate = format(weekStart, 'yyyy-MM-dd');
-      
+
       // If we have comparison data, create shopping list with only needed items
       if (comparedIngredients && comparedIngredients.length > 0) {
         // Filter to only items we need to buy (difference !== 'full')
@@ -583,7 +583,7 @@ export default function ShoppingScreen() {
             quantity: ing.displayNeed !== 'as needed' ? ing.displayNeed : ing.needed,
             category: 'Meal Plan',
           }));
-        
+
         // Create the list directly with filtered items
         const listName = `Shopping for ${format(weekStart, 'MMM d')}`;
         await shoppingAPI.create(userId, listName, itemsToBuy, []);
@@ -591,7 +591,7 @@ export default function ShoppingScreen() {
         // Fallback to original method
         await shoppingAPI.createFromMealPlanWeek(userId, startDate);
       }
-      
+
       createFromMealPlanSheetRef.current?.close();
       await loadShoppingLists();
     } catch (error) {
@@ -686,11 +686,10 @@ export default function ShoppingScreen() {
                   activeOpacity={0.7}
                 >
                   <View
-                    className={`w-6 h-6 rounded-full mr-3 items-center justify-center ${
-                      item.checked
+                    className={`w-6 h-6 rounded-full mr-3 items-center justify-center ${item.checked
                         ? 'bg-brand-green'
                         : 'border-2 border-gray-300'
-                    }`}
+                      }`}
                   >
                     {item.checked && (
                       <Text className="text-white text-xs">✓</Text>
@@ -698,11 +697,10 @@ export default function ShoppingScreen() {
                   </View>
                   <View className="flex-1">
                     <Text
-                      className={`text-base space-regular ${
-                        item.checked
+                      className={`text-base space-regular ${item.checked
                           ? 'line-through text-gray-400'
                           : 'text-gray-900'
-                      }`}
+                        }`}
                     >
                       {item.name}
                     </Text>
@@ -739,7 +737,7 @@ export default function ShoppingScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
       <View className="flex-1">
         {/* Header */}
         <View className="px-4 pt-4 pb-2">

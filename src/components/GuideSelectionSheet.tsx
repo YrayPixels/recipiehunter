@@ -64,12 +64,12 @@ export const GuideSelectionSheet: React.FC<GuideSelectionSheetProps> = ({
                 {guide.image_url || guide.thumbnail_url ? (
                   <Image
                     source={{ uri: guide.image_url || guide.thumbnail_url }}
-                    className="w-16 h-16 rounded-xl mr-3"
+                    className="w-16 h-16 rounded-lg mr-3"
                     resizeMode="cover"
                   />
                 ) : (
                   <View
-                    className="w-16 h-16 rounded-xl mr-3 items-center justify-center"
+                    className="w-16 h-16 rounded-lg mr-3 items-center justify-center"
                     style={{ backgroundColor: '#F6FBDE' }}
                   >
                     <Text className="text-2xl">🍽️</Text>

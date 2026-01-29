@@ -44,7 +44,7 @@ export function BottomNavigation() {
 
   return (
     <View className=" px-4 pt-3 pb-2">
-          <View className="bg-[#313131] rounded-full w-full p-3 flex-row items-center justify-around">
+      <View className="bg-[#313131] rounded-full w-full p-3 flex-row items-center justify-around">
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.route);

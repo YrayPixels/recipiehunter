@@ -178,7 +178,14 @@ export const guidesAPI = {
    * Create new guide/recipe
    */
   create: async (guideData: any) => {
-    const response = await api.post('/api/guides', guideData);
+    // Increase timeout for AI generation requests (can take 60+ seconds)
+    const isAIGeneration = guideData.metadata?.generatedBy === 'quick-recipe' || 
+                          guideData.metadata?.generatedBy === 'from-ingredients';
+    const timeout = isAIGeneration ? 120000 : 30000; // 2 minutes for AI, 30s for regular
+    
+    const response = await api.post('/api/guides', guideData, {
+      timeout,
+    });
     // Handle both 'recipe' and 'guide' in response
     const data = response.data;
     const guide = data.recipe || data.guide || data;

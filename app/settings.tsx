@@ -133,7 +133,7 @@ export default function SettingsScreen() {
     const newGoals = currentGoals.includes(goalValue)
       ? currentGoals.filter(g => g !== goalValue)
       : [...currentGoals, goalValue];
-    
+
     setPreferences({ ...preferences, userGoals: newGoals });
   };
 
@@ -223,24 +223,22 @@ export default function SettingsScreen() {
                     <Text className="text-sm space-medium mb-2" style={{ color: '#313131' }}>
                       Primary Cuisine
                     </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} className="flex-row">
                       {CUISINES.map((cuisine) => (
                         <TouchableOpacity
                           key={cuisine.value}
                           onPress={() => setPreferences({ ...preferences, primaryCuisine: cuisine.value })}
-                          className={`px-4 py-2 rounded-3xl border ${
-                            preferences.primaryCuisine === cuisine.value
-                              ? 'bg-brand-green border-brand-green'
-                              : 'bg-brand-cream border-brand-green'
-                          }`}
+                          className={`px-4 py-2 rounded-3xl border ${preferences.primaryCuisine === cuisine.value
+                            ? 'bg-brand-green border-brand-green'
+                            : 'bg-brand-cream border-brand-green'
+                            }`}
                           activeOpacity={0.7}
                         >
                           <Text
-                            className={`text-sm space-regular ${
-                              preferences.primaryCuisine === cuisine.value
-                                ? 'text-[#313131]'
-                                : 'text-[#313131]'
-                            }`}
+                            className={`text-sm space-regular ${preferences.primaryCuisine === cuisine.value
+                              ? 'text-[#313131]'
+                              : 'text-[#313131]'
+                              }`}
                           >
                             {cuisine.label}
                           </Text>
@@ -259,19 +257,17 @@ export default function SettingsScreen() {
                         <TouchableOpacity
                           key={pref.value}
                           onPress={() => setPreferences({ ...preferences, timePreference: pref.value })}
-                          className={`flex-1 px-4 py-2 rounded-3xl border ${
-                            preferences.timePreference === pref.value
-                              ? 'bg-brand-green border-brand-green'
-                              : 'bg-brand-cream border-brand-green'
-                          }`}
+                          className={`flex-1 px-4 py-2 rounded-3xl border ${preferences.timePreference === pref.value
+                            ? 'bg-brand-green border-brand-green'
+                            : 'bg-brand-cream border-brand-green'
+                            }`}
                           activeOpacity={0.7}
                         >
                           <Text
-                            className={`text-sm text-center space-regular ${
-                              preferences.timePreference === pref.value
-                                ? 'text-[#313131]'
-                                : 'text-[#313131]'
-                            }`}
+                            className={`text-sm text-center space-regular ${preferences.timePreference === pref.value
+                              ? 'text-[#313131]'
+                              : 'text-[#313131]'
+                              }`}
                           >
                             {pref.label}
                           </Text>
@@ -290,19 +286,17 @@ export default function SettingsScreen() {
                         <TouchableOpacity
                           key={level.value}
                           onPress={() => setPreferences({ ...preferences, spicePreference: level.value })}
-                          className={`flex-1 px-4 py-2 rounded-3xl border ${
-                            preferences.spicePreference === level.value
-                              ? 'bg-brand-green border-brand-green'
-                              : 'bg-brand-cream border-brand-green'
-                          }`}
+                          className={`flex-1 px-4 py-2 rounded-3xl border ${preferences.spicePreference === level.value
+                            ? 'bg-brand-green border-brand-green'
+                            : 'bg-brand-cream border-brand-green'
+                            }`}
                           activeOpacity={0.7}
                         >
                           <Text
-                            className={`text-sm text-center space-regular ${
-                              preferences.spicePreference === level.value
-                                ? 'text-[#313131]'
-                                : 'text-[#313131]'
-                            }`}
+                            className={`text-sm text-center space-regular ${preferences.spicePreference === level.value
+                              ? 'text-[#313131]'
+                              : 'text-[#313131]'
+                              }`}
                           >
                             {level.label}
                           </Text>
@@ -323,19 +317,17 @@ export default function SettingsScreen() {
                           <TouchableOpacity
                             key={goal.value}
                             onPress={() => toggleGoal(goal.value)}
-                            className={`px-3 py-2 rounded-3xl border ${
-                              isSelected
-                                ? 'bg-brand-green border-brand-green'
-                                : 'bg-brand-cream border-brand-green'
-                            }`}
+                            className={`px-3 py-2 rounded-3xl border ${isSelected
+                              ? 'bg-brand-green border-brand-green'
+                              : 'bg-brand-cream border-brand-green'
+                              }`}
                             activeOpacity={0.7}
                           >
                             <Text
-                              className={`text-sm space-regular ${
-                                isSelected
-                                  ? 'text-[#313131]'
-                                  : 'text-[#313131]'
-                              }`}
+                              className={`text-sm space-regular ${isSelected
+                                ? 'text-[#313131]'
+                                : 'text-[#313131]'
+                                }`}
                             >
                               {goal.emoji} {goal.label}
                             </Text>
@@ -373,19 +365,17 @@ export default function SettingsScreen() {
                       <TouchableOpacity
                         key={themeOption}
                         onPress={() => setTheme(themeOption)}
-                        className={`flex-1 px-4 py-3 rounded-3xl border ${
-                          theme === themeOption
-                            ? 'bg-brand-green border-brand-green'
-                            : 'bg-brand-cream border-brand-green'
-                        }`}
+                        className={`flex-1 px-4 py-3 rounded-3xl border ${theme === themeOption
+                          ? 'bg-brand-green border-brand-green'
+                          : 'bg-brand-cream border-brand-green'
+                          }`}
                         activeOpacity={0.7}
                       >
                         <Text
-                          className={`text-sm text-center space-medium capitalize ${
-                            theme === themeOption
-                              ? 'text-[#313131]'
-                              : 'text-[#313131]'
-                          }`}
+                          className={`text-sm text-center space-medium capitalize ${theme === themeOption
+                            ? 'text-[#313131]'
+                            : 'text-[#313131]'
+                            }`}
                         >
                           {themeOption}
                         </Text>
