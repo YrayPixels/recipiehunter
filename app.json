@@ -71,7 +71,7 @@
       "eas": {
         "projectId": ""
       },
-      "apiUrl": "http://localhost:3001"
+      "apiUrl": "http://localhost:3002"
     },
     "runtimeVersion": "1.1.1",
     "updates": {

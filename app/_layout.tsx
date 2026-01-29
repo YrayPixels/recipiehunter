@@ -207,7 +207,7 @@ export default function RootLayout() {
 
 function LayoutWithBottomNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
+
   // Hide bottom navigation on onboarding screens
   const hideBottomNav = pathname?.startsWith('/onboarding');
 
@@ -216,7 +216,7 @@ function LayoutWithBottomNav({ children }: { children: React.ReactNode }) {
       {children}
       {!hideBottomNav && (
         <SafeAreaView style={{ backgroundColor: pathname?.startsWith('/settings') ? '#fddffd' : '#F6FBDE' }}
-        edges={['bottom']} className="bg-transparent">
+          className="bg-transparent border border-blue-500" edges={['bottom']}>
           <BottomNavigation />
         </SafeAreaView>
       )}

@@ -5,8 +5,8 @@ import { format, addDays, parseISO } from 'date-fns';
 import { cacheRecipe } from './recipeCache';
 
 // Get API URL from environment or use default
-// For production, update this to your garde server URL
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+// For production, update this to your recipehunter server URL
+const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3002';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -41,7 +41,12 @@ export const videoAPI = {
     const response = await api.post('/api/video/process-url', { url, userId }, {
       timeout: 30000,
     });
-    return response.data;
+    // Handle both 'recipe' and 'guide' in response for backward compatibility
+    const data = response.data;
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    return data;
   },
 
   /**
@@ -74,7 +79,18 @@ export const videoAPI = {
     const response = await api.get(`/api/video/job/${jobId}?userId=${userId}`, {
       timeout: 10000,
     });
-    return response.data;
+    const data = response.data;
+    // Ensure top-level fields for mobile app compatibility
+    if (data.job) {
+      return {
+        ...data,
+        status: data.status || data.job.status,
+        progress: data.progress || data.job.progress,
+        step: data.step || data.job.currentStep,
+        error: data.error || data.job.errorMessage,
+      };
+    }
+    return data;
   },
 
   /**
@@ -84,7 +100,15 @@ export const videoAPI = {
     const response = await api.get(`/api/video/jobs?userId=${userId}&limit=${limit}&offset=${offset}`, {
       timeout: 10000,
     });
-    return response.data;
+    const data = response.data;
+    // Ensure backward compatibility - add 'guide' field if 'recipe' exists
+    if (data.jobs && Array.isArray(data.jobs)) {
+      data.jobs = data.jobs.map((job: any) => ({
+        ...job,
+        guide: job.recipe || job.guide, // Backward compatibility
+      }));
+    }
+    return data;
   },
 };
 
@@ -97,14 +121,19 @@ export const articleAPI = {
     const response = await api.post('/api/article/process', { url, userId }, {
       timeout: 60000,
     });
-    return response.data;
+    // Handle both 'recipe' and 'guide' in response for backward compatibility
+    const data = response.data;
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    return data;
   },
 };
 
 // Guides API
 export const guidesAPI = {
   /**
-   * Get all guides for a user with optional pagination
+   * Get all guides/recipes for a user with optional pagination
    */
   getAll: async (
     userId: string,
@@ -124,23 +153,35 @@ export const guidesAPI = {
     params.append('offset', offset.toString());
 
     const response = await api.get(`/api/guides/${userId}?${params.toString()}`);
-    return response.data;
+    // Handle both 'recipes' and 'guides' in response for backward compatibility
+    const data = response.data;
+    if (data.recipes && !data.guides) {
+      data.guides = data.recipes;
+    }
+    return data;
   },
 
   /**
-   * Get single guide by ID
+   * Get single guide/recipe by ID
    */
   getById: async (guideId: string) => {
     const response = await api.get(`/api/guides/detail/${guideId}`);
-    return response.data;
+    // Handle both 'recipe' and 'guide' in response
+    const data = response.data;
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    return data;
   },
 
   /**
-   * Create new guide
+   * Create new guide/recipe
    */
   create: async (guideData: any) => {
     const response = await api.post('/api/guides', guideData);
-    const guide = response.data.guide || response.data;
+    // Handle both 'recipe' and 'guide' in response
+    const data = response.data;
+    const guide = data.recipe || data.guide || data;
     
     // Cache recipe if it's a recipe type
     if (guide && (guide.type === 'recipe' || guideData.type === 'recipe')) {
@@ -151,15 +192,25 @@ export const guidesAPI = {
       }
     }
     
-    return response.data;
+    // Ensure backward compatibility
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    
+    return data;
   },
 
   /**
-   * Update guide
+   * Update guide/recipe
    */
   update: async (guideId: string, updates: any) => {
     const response = await api.patch(`/api/guides/${guideId}`, updates);
-    return response.data;
+    const data = response.data;
+    // Ensure backward compatibility
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    return data;
   },
 
   /**
@@ -171,11 +222,16 @@ export const guidesAPI = {
   },
 
   /**
-   * Toggle pin status for a guide
+   * Toggle pin status for a guide/recipe
    */
   togglePin: async (guideId: string, userId: string, pinned: boolean) => {
     const response = await api.patch(`/api/guides/${guideId}/pin`, { userId, pinned });
-    return response.data;
+    const data = response.data;
+    // Ensure backward compatibility
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    return data;
   },
 
   /**
@@ -831,16 +887,22 @@ export const recipeAPI = {
     });
     
     // Cache saved recipe
-    const savedGuide = response.data.guide || response.data;
-    if (savedGuide) {
+    const savedRecipe = response.data.recipe || response.data.guide || response.data;
+    if (savedRecipe) {
       try {
-        await cacheRecipe(savedGuide);
+        await cacheRecipe(savedRecipe);
       } catch (error) {
         console.error('Failed to cache saved recipe:', error);
       }
     }
     
-    return response.data;
+    // Ensure backward compatibility
+    const data = response.data;
+    if (data.recipe && !data.guide) {
+      data.guide = data.recipe;
+    }
+    
+    return data;
   },
 };
 

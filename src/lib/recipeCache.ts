@@ -11,8 +11,8 @@ const CACHE_KEYS = {
 
 // Cache TTL in milliseconds
 const CACHE_TTL = {
-  POPULAR_RECIPES: 60 * 60 * 1000, // 1 hour - popular recipes change frequently
-  RECIPE_DETAIL: 24 * 60 * 60 * 1000, // 24 hours - recipe details don't change
+  POPULAR_RECIPES: 60 * 60 * 1000, // 1 hour - popular recipes change frequently (not used for display, but kept for compatibility)
+  RECIPE_DETAIL: 365 * 24 * 60 * 60 * 1000, // 1 year - recipe details don't change, cache indefinitely
   RANDOM_MEALS: 60 * 60 * 1000, // 1 hour - random meals
   SEARCH_RESULTS: 60 * 60 * 1000, // 1 hour - search results
 };

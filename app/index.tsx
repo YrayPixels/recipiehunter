@@ -95,18 +95,8 @@ export default function DashboardScreen() {
     try {
       setLoadingRecipes(true);
 
-      // Check cache first
-      const { getCachedPopularRecipes, setCachedPopularRecipes, setCachedRecipeDetail, countCachedRecipes } = await import('../src/lib/recipeCache');
-      const cached = await getCachedPopularRecipes() as PopularRecipe[] | null;
-
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        setPopularRecipes(cached);
-        // Update stats with cached recipe count
-        const totalRecipes = await countCachedRecipes();
-        setStats(prev => ({ ...prev, totalRecipes }));
-        setLoadingRecipes(false);
-        return;
-      }
+      // Always fetch new random recipes on each load (don't use cache for popular recipes list)
+      const { setCachedPopularRecipes, setCachedRecipeDetail, countCachedRecipes } = await import('../src/lib/recipeCache');
 
       // Fetch 6 random meals from TheMealDB (will use its own cache)
       const meals = await mealDBAPI.getRandomMeals(6);

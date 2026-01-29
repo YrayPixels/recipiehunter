@@ -95,7 +95,7 @@ export default function GuidesScreen() {
 
   const loadGuides = async () => {
     if (!userId) return;
-    
+
     try {
       setLoading(true);
 
@@ -319,10 +319,10 @@ export default function GuidesScreen() {
                 resizeMode="cover"
               />
             ) : (
-                <View
-                  className="w-full h-full items-center justify-center"
-                  style={{ backgroundColor: '#FEF7E6' }}
-                >
+              <View
+                className="w-full h-full items-center justify-center"
+                style={{ backgroundColor: '#FEF7E6' }}
+              >
                 <Text style={{ fontSize: 72 }}>🍽️</Text>
               </View>
             )}
@@ -428,34 +428,37 @@ export default function GuidesScreen() {
         </View>
 
         {/* Recipe List */}
-        <FlatList
-          data={filteredGuides}
-          renderItem={renderGuide}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80, paddingTop: 16 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View className="items-center justify-center py-20">
-              <Text className="text-6xl mb-4">{getActiveFilterCount() > 0 ? '🔍' : '🍽️'}</Text>
-              <Text className="text-center mb-2 text-xl font-bold" style={{ color: '#1F2937' }}>
-                {getActiveFilterCount() > 0 ? 'No matching recipes' : 'No recipes yet'}
-              </Text>
-              <Text className="text-center mb-6 text-sm px-8" style={{ color: '#6B7280' }}>
-                {getActiveFilterCount() > 0
-                  ? 'Try adjusting your filters to see more recipes'
-                  : 'Start building your recipe collection'}
-              </Text>
-              {getActiveFilterCount() > 0 ? (
-                <TouchableOpacity
-                  onPress={clearAllFilters}
-                  className="px-6 py-3 rounded-3xl"
-                  style={{ backgroundColor: '#D4E95A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
-                >
-                  <Text className="font-bold text-base" style={{ color: '#1F2937' }}>Clear Filters</Text>
-                </TouchableOpacity>
-              ) : (
+        <View className='flex-1 px-4 py-4'>
+          <FlatList
+            className='flex-1 '
+            data={filteredGuides}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderGuide}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={
+              <View className="items-center justify-center">
+                <Text className="text-6xl mb-4">{getActiveFilterCount() > 0 ? '🔍' : '🍽️'}</Text>
+                <Text className="text-center mb-2 text-xl font-bold" style={{ color: '#1F2937' }}>
+                  {getActiveFilterCount() > 0 ? 'No matching recipes' : 'No recipes yet'}
+                </Text>
+                <Text className="text-center mb-6 text-sm px-8" style={{ color: '#6B7280' }}>
+                  {getActiveFilterCount() > 0
+                    ? 'Try adjusting your filters to see more recipes'
+                    : 'Start building your recipe collection'}
+                </Text>
+                {getActiveFilterCount() > 0 ? (
+                  <TouchableOpacity
+                    onPress={clearAllFilters}
+                    className="px-6 py-3 rounded-3xl"
+                    style={{ backgroundColor: '#D4E95A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
+                  >
+                    <Text className="font-bold text-base" style={{ color: '#1F2937' }}>Clear Filters</Text>
+                  </TouchableOpacity>
+                ) : (
                   <TouchableOpacity
                     onPress={() => bottomSheetRef.current?.expand()}
                     className="px-6 py-3 rounded-3xl"
@@ -463,10 +466,11 @@ export default function GuidesScreen() {
                   >
                     <Text className="font-bold text-base" style={{ color: '#1F2937' }}>+ Create Your First Recipe</Text>
                   </TouchableOpacity>
-              )}
-            </View>
-          }
-        />
+                )}
+              </View>
+            }
+          />
+        </View>
       </View>
 
       {/* Add Guide Bottom Sheet */}
