@@ -201,41 +201,6 @@ const RemindersPage: React.FC = () => {
                     />
                   </View>
 
-                  {/* Motivational Quotes */}
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <Text className="text-sm font-medium text-foreground dark:text-foreground-dark mb-1">
-                        Motivational Quotes
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setEditingTime({ type: 'motivational', time: settings.notifications.motivationalQuotesTime });
-                          timePickerControlRef.current?.open();
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text className="text-xs text-primary dark:text-primary-dark font-medium">
-                          {settings.notifications.motivationalQuotesTime} (tap to edit)
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    <Toggle
-                      value={settings.notifications.motivationalQuotes ?? true}
-                      onValueChange={async (value) => {
-                        const updated = {
-                          ...settings,
-                          notifications: {
-                            ...settings.notifications,
-                            motivationalQuotes: value,
-                          },
-                        };
-                        await saveSettings(updated);
-                        setSettings(updated);
-                        await scheduleAllReminders(updated.notifications);
-                      }}
-                    />
-                  </View>
-
                   {/* Milestone Notifications */}
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1">
@@ -262,31 +227,6 @@ const RemindersPage: React.FC = () => {
                     />
                   </View>
 
-                  {/* Goal Reminders */}
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <Text className="text-sm font-medium text-foreground dark:text-foreground-dark mb-1">
-                        Goal Reminders
-                      </Text>
-                      <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
-                        Get reminders about your goals
-                      </Text>
-                    </View>
-                    <Toggle
-                      value={settings.notifications.goalReminders ?? true}
-                      onValueChange={async (value) => {
-                        const updated = {
-                          ...settings,
-                          notifications: {
-                            ...settings.notifications,
-                            goalReminders: value,
-                          },
-                        };
-                        await saveSettings(updated);
-                        setSettings(updated);
-                      }}
-                    />
-                  </View>
                 </View>
               </CardContent>
             </Card>
@@ -586,7 +526,6 @@ const RemindersPage: React.FC = () => {
                 ...(editingTime.type === 'morning' && { morningTime: newTime }),
                 ...(editingTime.type === 'midday' && { middayTime: newTime }),
                 ...(editingTime.type === 'evening' && { eveningTime: newTime }),
-                ...(editingTime.type === 'motivational' && { motivationalQuotesTime: newTime }),
                 ...(editingTime.type === 'custom' && { customNotificationTime: newTime }),
               },
             };
@@ -604,7 +543,7 @@ const RemindersPage: React.FC = () => {
           onClose={() => {
             setEditingTime(null);
           }}
-          title={editingTime ? `Edit ${editingTime.type === 'morning' ? 'Morning' : editingTime.type === 'midday' ? 'Midday' : editingTime.type === 'evening' ? 'Evening' : editingTime.type === 'motivational' ? 'Motivational Quote' : 'Custom'} Time` : 'Select Time'}
+          title={editingTime ? `Edit ${editingTime.type === 'morning' ? 'Morning' : editingTime.type === 'midday' ? 'Midday' : editingTime.type === 'evening' ? 'Evening' : 'Custom'} Time` : 'Select Time'}
         />
 
         {AlertComponent}

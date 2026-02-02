@@ -1,9 +1,8 @@
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { AlertTriangle, BarChart, Settings, Target, Zap } from 'react-native-feather';
-import { calculateStreak } from '../lib/storage';
+import { AlertTriangle, BarChart, Settings } from 'react-native-feather';
 
 interface HeaderProps {
   onEmergency: () => void;
@@ -15,15 +14,6 @@ export const Header: React.FC<HeaderProps> = ({ onEmergency, completionCount = 0
   const router = useRouter();
   const today = new Date();
   const formattedDate = format(today, 'EEEE, MMMM d');
-  const [currentStreak, setCurrentStreak] = useState(0);
-
-  useEffect(() => {
-    const loadStreak = async () => {
-      const streakData = await calculateStreak();
-      setCurrentStreak(streakData.currentStreak);
-    };
-    loadStreak();
-  }, []);
 
   return (
     <View className="py-4">
@@ -39,13 +29,6 @@ export const Header: React.FC<HeaderProps> = ({ onEmergency, completionCount = 0
             activeOpacity={0.7}
           >
             <BarChart width={16} height={16} color="#5a7a5a" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push('/goals')}
-            className="px-3 py-2 rounded-lg bg-card dark:bg-gray-800 border border-border dark:border-gray-700"
-            activeOpacity={0.7}
-          >
-            <Target width={16} height={16} color="#5a7a5a" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push('/settings')}
@@ -67,20 +50,6 @@ export const Header: React.FC<HeaderProps> = ({ onEmergency, completionCount = 0
         </View>
       </View>
 
-      {/* Streak Display */}
-      <View className="flex-row items-center gap-2 mb-3">
-        <TouchableOpacity
-          onPress={() => router.push('/stats')}
-          activeOpacity={0.7}
-          className="flex-row items-center gap-2 px-3 py-2 rounded-lg bg-sage-light dark:bg-gray-800"
-        >
-          <Zap width={18} height={18} color="#d97706" />
-          <Text className="text-sm font-semibold text-foreground dark:text-gray-100">
-            {currentStreak} day{currentStreak !== 1 ? 's' : ''} streak
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
       {/* Progress indicator */}
       <View className="flex-row items-center gap-3 pb-2">
         <View className="flex-1 h-2 bg-secondary dark:bg-gray-700 rounded-full overflow-hidden">

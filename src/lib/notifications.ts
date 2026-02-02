@@ -2,7 +2,6 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { getRandomQuote } from './quotes';
 
 export interface CustomNotification {
   id: string;
@@ -21,25 +20,19 @@ export interface NotificationSettings {
   eveningReminder: boolean;
   eveningTime: string;
   milestoneNotifications: boolean;
-  motivationalQuotes: boolean;
-  motivationalQuotesTime: string; // HH:mm format
-  goalReminders: boolean;
   quietHoursStart: string; // HH:mm
   quietHoursEnd: string; // HH:mm
   customNotifications?: CustomNotification[]; // Array of custom notifications
 }
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
-  morningReminder: true,
+  morningReminder: false,
   morningTime: '08:00',
-  middayReminder: true,
+  middayReminder: false,
   middayTime: '13:00',
-  eveningReminder: true,
+  eveningReminder: false,
   eveningTime: '20:00',
-  milestoneNotifications: true,
-  motivationalQuotes: true,
-  motivationalQuotesTime: '10:00',
-  goalReminders: true,
+  milestoneNotifications: false,
   quietHoursStart: '22:00',
   quietHoursEnd: '07:00',
   customNotifications: [],
@@ -228,19 +221,6 @@ export const scheduleAllReminders = async (
     );
   }
 
-  // Motivational quote reminder
-  if (settings.motivationalQuotes) {
-    const quote = getRandomQuote();
-    await scheduleDailyNotification(
-      "motivational-quote",
-      "💚 Daily Motivation",
-      quote.text,
-      settings.motivationalQuotesTime,
-      settings.quietHoursStart,
-      settings.quietHoursEnd
-    );
-  }
-
   // Custom notifications
   const customNotifications = settings.customNotifications || [];
   for (const customNotif of customNotifications) {
@@ -281,52 +261,4 @@ export const sendMilestoneNotification = async (
   }
 };
 
-// Send goal reminder notification
-export const sendGoalReminder = async (
-  goalTitle: string,
-  daysRemaining: number
-): Promise<void> => {
-  const hasPermission = await requestNotificationPermissions();
-  if (!hasPermission) {
-    return;
-  }
-
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `🎯 Goal Reminder: ${goalTitle}`,
-        body: `You're ${daysRemaining} days away from reaching your goal! Keep going! 💪`,
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-      },
-      trigger: null, // Send immediately
-    });
-  } catch (error) {
-    console.warn('Error sending goal reminder:', error);
-  }
-};
-
-// Send goal completion notification
-export const sendGoalCompletionNotification = async (
-  goalTitle: string
-): Promise<void> => {
-  const hasPermission = await requestNotificationPermissions();
-  if (!hasPermission) {
-    return;
-  }
-
-  try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `🎉 Goal Achieved!`,
-        body: `Congratulations! You've completed your goal: ${goalTitle}. Amazing work! 🏆`,
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
-      },
-      trigger: null, // Send immediately
-    });
-  } catch (error) {
-    console.warn('Error sending goal completion notification:', error);
-  }
-};
 

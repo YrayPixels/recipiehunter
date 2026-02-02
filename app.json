@@ -69,11 +69,11 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": ""
+        "projectId": "74429156-8b41-4a5b-a612-6ceb7e156ab5"
       },
       "apiUrl": "http://localhost:3002"
     },
-    "runtimeVersion": "1.1.1",
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": ""
     }

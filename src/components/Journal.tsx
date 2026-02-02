@@ -3,10 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { BookOpen, Calendar as CalendarIcon, ChevronLeft, ChevronRight, CheckCircle, Lock, XCircle } from 'react-native-feather';
 import { canCreateJournalEntry } from '../lib/features';
-import { createDefaultJournalEntry, getGoals, getJournalEntry, getTodayDate, JournalEntry, saveJournalEntry, updateStreak } from '../lib/storage';
-// Removed habit tracking stores - not relevant to Recipe Hunter
-// import { useDailyStatusStore } from '../lib/stores/dailyStatusStore';
-// import { useGoalDayStore } from '../lib/stores/goalDayStore';
+import { createDefaultJournalEntry, getJournalEntry, getTodayDate, JournalEntry, saveJournalEntry } from '../lib/storage';
 import { cn } from '../lib/utils';
 import { CalendarPicker } from './CalendarPicker';
 import { Card, CardContent, CardHeader, CardTitle } from './Card';
@@ -166,12 +163,9 @@ export const Journal: React.FC<JournalProps> = ({
   const [loading, setLoading] = useState(true);
   const [hasExistingEntry, setHasExistingEntry] = useState(false);
   const [journalLimit, setJournalLimit] = useState<{ allowed: boolean; reason?: string; countThisWeek?: number } | null>(null);
-  const { setDailyStatus, getDailyStatus } = useDailyStatusStore();
   
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const isToday = selectedDateStr === today;
-  const dailyStatus = getDailyStatus(selectedDateStr);
-  const { addGoalDay, removeGoalDay } = useGoalDayStore();
 
   useEffect(() => {
     const loadData = async () => {
@@ -207,41 +201,9 @@ export const Journal: React.FC<JournalProps> = ({
       // Only auto-save if editing existing entry or if new entry is allowed
       if (hasExistingEntry || journalLimit?.allowed) {
         saveJournalEntry(entry);
-        // Update streak when journal entry changes, especially if urgeExperienced changes
-        updateStreak().catch(console.error);
       }
-      
-      // Automatically mark as good day if had urge but didn't give in
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const syncWithGoals = async () => {
-        const goals = await getGoals();
-        const activeGoals = goals.filter(g => !g.completed);
-        
-        if (entry.urgeExperienced && !entry.responseActions.includes('Gave in')) {
-          // If urge experienced but didn't give in, mark as clean day
-          setDailyStatus(dateStr, 'clean');
-          // Add to all active goals
-          activeGoals.forEach(goal => {
-            addGoalDay(goal.id, dateStr);
-          });
-        } else if (entry.urgeExperienced && entry.responseActions.includes('Gave in')) {
-          // If gave in, mark as gave in and remove from goals
-          setDailyStatus(dateStr, 'gave_in');
-          activeGoals.forEach(goal => {
-            removeGoalDay(goal.id, dateStr);
-          });
-        } else if (!entry.urgeExperienced) {
-          // If no urge, mark as clean and add to goals
-          setDailyStatus(dateStr, 'clean');
-          activeGoals.forEach(goal => {
-            addGoalDay(goal.id, dateStr);
-          });
-        }
-      };
-      
-      syncWithGoals().catch(console.error);
     }
-  }, [entry, loading, selectedDate, hasExistingEntry, journalLimit, setDailyStatus, addGoalDay, removeGoalDay]);
+  }, [entry, loading, selectedDate, hasExistingEntry, journalLimit]);
 
   const updateEntry = (updates: Partial<JournalEntry>) => {
     setEntry((prev) => ({ ...prev, ...updates }));
@@ -510,88 +472,6 @@ export const Journal: React.FC<JournalProps> = ({
           </View>
         </CardContent>
       </Card>
-
-      {/* End of Day Status */}
-      {isToday && (
-        <Card>
-          <CardHeader>
-            <CardTitle>End of Day Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Text className="text-sm text-muted-foreground dark:text-gray-400 mb-4">
-              How did today go overall?
-            </Text>
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={async () => {
-                  setDailyStatus(selectedDateStr, 'clean');
-                  // Sync with goals
-                  const goals = await getGoals();
-                  const activeGoals = goals.filter(g => !g.completed);
-                  activeGoals.forEach(goal => {
-                    addGoalDay(goal.id, selectedDateStr);
-                  });
-                }}
-                className={cn(
-                  'flex-1 py-4 px-4 rounded-lg items-center justify-center border-2',
-                  dailyStatus === 'clean'
-                    ? 'bg-sage border-sage'
-                    : 'bg-transparent border-border dark:border-gray-700'
-                )}
-                activeOpacity={0.7}
-              >
-                <CheckCircle 
-                  width={24} 
-                  height={24} 
-                  color={dailyStatus === 'clean' ? '#5a7a5a' : '#9ca3af'} 
-                  className="mb-2"
-                />
-                <Text className={cn(
-                  'text-sm font-semibold',
-                  dailyStatus === 'clean'
-                    ? 'text-primary-foreground'
-                    : 'text-foreground dark:text-gray-100'
-                )}>
-                  Stayed Clean
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  setDailyStatus(selectedDateStr, 'gave_in');
-                  // Remove from goals
-                  const goals = await getGoals();
-                  const activeGoals = goals.filter(g => !g.completed);
-                  activeGoals.forEach(goal => {
-                    removeGoalDay(goal.id, selectedDateStr);
-                  });
-                }}
-                className={cn(
-                  'flex-1 py-4 px-4 rounded-lg items-center justify-center border-2',
-                  dailyStatus === 'gave_in'
-                    ? 'bg-red-500/20 border-red-500'
-                    : 'bg-transparent border-border dark:border-gray-700'
-                )}
-                activeOpacity={0.7}
-              >
-                <XCircle 
-                  width={24} 
-                  height={24} 
-                  color={dailyStatus === 'gave_in' ? '#ef4444' : '#9ca3af'} 
-                  className="mb-2"
-                />
-                <Text className={cn(
-                  'text-sm font-semibold',
-                  dailyStatus === 'gave_in'
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-foreground dark:text-gray-100'
-                )}>
-                  Gave In
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </CardContent>
-        </Card>
-      )}
 
       <View className="pt-2 pb-4">
         <TouchableOpacity

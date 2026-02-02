@@ -22,9 +22,7 @@ export const RemindersDashboard: React.FC = () => {
         settings.notifications.morningReminder,
         settings.notifications.middayReminder,
         settings.notifications.eveningReminder,
-        settings.notifications.motivationalQuotes,
         settings.notifications.milestoneNotifications,
-        settings.notifications.goalReminders,
       ].filter(Boolean).length;
       setReminderCount(defaultCount + customCount);
       setLoading(false);
