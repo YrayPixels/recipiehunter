@@ -77,6 +77,23 @@ export default function GuidesScreen() {
     }
   }, [params.category]);
 
+  const applySearch = () => {
+    if (!searchQuery.trim()) {
+      setFilteredGuides(guides);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = guides.filter(guide => {
+      const titleMatch = guide.title?.toLowerCase().includes(query);
+      const summaryMatch = guide.summary?.toLowerCase().includes(query);
+      const categoryMatch = guide.category?.toLowerCase().includes(query);
+      return titleMatch || summaryMatch || categoryMatch;
+    });
+
+    setFilteredGuides(filtered);
+  };
+
   useEffect(() => {
     if (userId) {
       loadGuides();
@@ -232,23 +249,6 @@ export default function GuidesScreen() {
   const handleCloseRecipeDetailsSheet = () => {
     recipeDetailsSheetRef.current?.close();
     setSelectedRecipe(null);
-  };
-
-  const applySearch = () => {
-    if (!searchQuery.trim()) {
-      setFilteredGuides(guides);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    const filtered = guides.filter(guide => {
-      const titleMatch = guide.title?.toLowerCase().includes(query);
-      const summaryMatch = guide.summary?.toLowerCase().includes(query);
-      const categoryMatch = guide.category?.toLowerCase().includes(query);
-      return titleMatch || summaryMatch || categoryMatch;
-    });
-
-    setFilteredGuides(filtered);
   };
 
   const getCategoryCount = (category: string) => {
