@@ -68,13 +68,6 @@
       ],
       [
         "expo-secure-store"
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you select videos for recipe creation.",
-          "cameraPermission": "The app accesses your camera to let you take photos for recipe creation."
-        }
       ]
     ],
     "experiments": {

@@ -1,4 +1,4 @@
-import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import React, { useState, useRef } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, Image, Linking } from 'react-native';
 import { guidesAPI, videoAPI, recipeAPI } from '../src/lib/api';
@@ -39,13 +39,12 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
   const handleVideoPick = async () => {
     try {
-      const result = await launchImageLibraryAsync({
-        mediaTypes: MediaTypeOptions.Videos,
-        allowsEditing: false,
-        quality: 1,
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['video/*'],
+        copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         setFile(result.assets[0].uri);
         setError(null);
       }

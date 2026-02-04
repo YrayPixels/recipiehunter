@@ -7,6 +7,7 @@ import { guidesAPI, mealDBAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
 import { BottomSheet as BottomSheetComponent } from '../src/components/BottomSheet';
+import { Input } from '../src/components/Input';
 import { AddGuide } from './add-guide';
 import { getAllCachedRecipes } from '../src/lib/recipeCache';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
@@ -49,11 +50,6 @@ const categories = [
   { id: 'snack', label: 'Snack', icon: '🍿', image: require('../assets/images/icons/breakfast.png') },
 ];
 
-interface FilterState {
-  difficulties: string[];
-  minRating: number | null;
-  maxTime: number | null;
-}
 
 export default function GuidesScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
@@ -66,16 +62,9 @@ export default function GuidesScreen() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const bottomSheetRef = useRef<BottomSheet>(null);
   const recipeDetailsSheetRef = useRef<BottomSheet>(null);
-  const filterSheetRef = useRef<BottomSheet>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
   const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
-
-  // Filter state
-  const [filters, setFilters] = useState<FilterState>({
-    difficulties: [],
-    minRating: null,
-    maxTime: null,
-  });
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     loadUserId();
@@ -96,9 +85,9 @@ export default function GuidesScreen() {
   }, [userId, selectedCategory]);
 
   useEffect(() => {
-    applyFilters();
+    applySearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guides, filters]);
+  }, [guides, searchQuery]);
 
   const loadUserId = async () => {
     const id = await getUserId();
@@ -245,70 +234,21 @@ export default function GuidesScreen() {
     setSelectedRecipe(null);
   };
 
-  const applyFilters = () => {
-    let filtered = [...guides];
-
-    // Filter by difficulty
-    if (filters.difficulties.length > 0) {
-      filtered = filtered.filter(guide =>
-        guide.difficulty && filters.difficulties.includes(guide.difficulty.toLowerCase())
-      );
+  const applySearch = () => {
+    if (!searchQuery.trim()) {
+      setFilteredGuides(guides);
+      return;
     }
 
-    // Filter by rating
-    if (filters.minRating !== null) {
-      filtered = filtered.filter(guide =>
-        guide.rating && guide.rating >= filters.minRating!
-      );
-    }
-
-    // Filter by time (convert duration string to minutes)
-    if (filters.maxTime !== null) {
-      filtered = filtered.filter(guide => {
-        if (!guide.duration) return true;
-        const timeMatch = guide.duration.match(/(\d+)/);
-        if (timeMatch) {
-          const minutes = parseInt(timeMatch[1]);
-          return minutes <= filters.maxTime!;
-        }
-        return true;
-      });
-    }
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = guides.filter(guide => {
+      const titleMatch = guide.title?.toLowerCase().includes(query);
+      const summaryMatch = guide.summary?.toLowerCase().includes(query);
+      const categoryMatch = guide.category?.toLowerCase().includes(query);
+      return titleMatch || summaryMatch || categoryMatch;
+    });
 
     setFilteredGuides(filtered);
-  };
-
-  const toggleDifficultyFilter = (difficulty: string) => {
-    setFilters(prev => ({
-      ...prev,
-      difficulties: prev.difficulties.includes(difficulty)
-        ? prev.difficulties.filter(d => d !== difficulty)
-        : [...prev.difficulties, difficulty],
-    }));
-  };
-
-  const setRatingFilter = (rating: number | null) => {
-    setFilters(prev => ({ ...prev, minRating: rating }));
-  };
-
-  const setTimeFilter = (time: number | null) => {
-    setFilters(prev => ({ ...prev, maxTime: time }));
-  };
-
-  const clearAllFilters = () => {
-    setFilters({
-      difficulties: [],
-      minRating: null,
-      maxTime: null,
-    });
-  };
-
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (filters.difficulties.length > 0) count++;
-    if (filters.minRating !== null) count++;
-    if (filters.maxTime !== null) count++;
-    return count;
   };
 
   const getCategoryCount = (category: string) => {
@@ -430,6 +370,19 @@ export default function GuidesScreen() {
             ))}
           </ScrollView>
 
+          {/* Search Input */}
+          <View className="px-4 mt-3">
+            <Input
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search recipes..."
+              leftIcon="🔍"
+              variant="filled"
+              size="md"
+              containerClassName="bg-white rounded-2xl"
+            />
+          </View>
+
           {/* Recipe Count and Action Buttons */}
           <View className="flex-row items-center justify-between px-4 mt-3">
             <Text className="text-2xl font-bold" style={{ color: '#1F2937' }}>
@@ -460,24 +413,16 @@ export default function GuidesScreen() {
             }
             ListEmptyComponent={
               <View className="items-center justify-center">
-                <Text className="text-6xl mb-4">{getActiveFilterCount() > 0 ? '🔍' : '🍽️'}</Text>
+                <Text className="text-6xl mb-4">{searchQuery.trim() ? '🔍' : '🍽️'}</Text>
                 <Text className="text-center mb-2 text-xl font-bold" style={{ color: '#1F2937' }}>
-                  {getActiveFilterCount() > 0 ? 'No matching recipes' : 'No recipes yet'}
+                  {searchQuery.trim() ? 'No matching recipes' : 'No recipes yet'}
                 </Text>
                 <Text className="text-center mb-6 text-sm px-8" style={{ color: '#6B7280' }}>
-                  {getActiveFilterCount() > 0
-                    ? 'Try adjusting your filters to see more recipes'
+                  {searchQuery.trim()
+                    ? 'Try a different search term'
                     : 'Start building your recipe collection'}
                 </Text>
-                {getActiveFilterCount() > 0 ? (
-                  <TouchableOpacity
-                    onPress={clearAllFilters}
-                    className="px-6 py-3 rounded-3xl"
-                    style={{ backgroundColor: '#D4E95A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
-                  >
-                    <Text className="font-bold text-base" style={{ color: '#1F2937' }}>Clear Filters</Text>
-                  </TouchableOpacity>
-                ) : (
+                {!searchQuery.trim() && (
                   <TouchableOpacity
                     onPress={() => bottomSheetRef.current?.expand()}
                     className="px-6 py-3 rounded-3xl"
@@ -514,126 +459,6 @@ export default function GuidesScreen() {
         onClose={handleCloseRecipeDetailsSheet}
       />
 
-      {/* Filter Bottom Sheet */}
-      <BottomSheetComponent
-        bottomSheetRef={filterSheetRef}
-        snapPoints={['70%']}
-        onClose={() => filterSheetRef.current?.close()}
-        backgroundStyle={{ backgroundColor: '#F6FBDE' }}
-      >
-        <View className="px-6 pb-6">
-          {/* Header */}
-          <View className="flex-row items-center justify-between mb-6">
-            <Text className="text-2xl font-bold" style={{ color: '#1F2937' }}>
-              Filters
-            </Text>
-            <TouchableOpacity
-              onPress={clearAllFilters}
-              className="px-4 py-2 rounded-lg"
-              style={{ backgroundColor: '#E5E7EB' }}
-            >
-              <Text className="font-semibold" style={{ color: '#1F2937' }}>
-                Clear All
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Difficulty Filter */}
-          <View className="mb-6">
-            <Text className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>
-              Difficulty
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {['easy', 'medium', 'hard'].map((difficulty) => (
-                <TouchableOpacity
-                  key={difficulty}
-                  onPress={() => toggleDifficultyFilter(difficulty)}
-                  className="px-4 py-2.5 rounded-lg"
-                  style={{
-                    backgroundColor: filters.difficulties.includes(difficulty) ? '#D4E95A' : '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: filters.difficulties.includes(difficulty) ? '#D4E95A' : '#E5E7EB',
-                  }}
-                >
-                  <Text
-                    className="font-semibold capitalize"
-                    style={{ color: '#1F2937' }}
-                  >
-                    {difficulty}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Rating Filter */}
-          <View className="mb-6">
-            <Text className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>
-              Minimum Rating
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {[3, 3.5, 4, 4.5, 5].map((rating) => (
-                <TouchableOpacity
-                  key={rating}
-                  onPress={() => setRatingFilter(filters.minRating === rating ? null : rating)}
-                  className="px-4 py-2.5 rounded-lg flex-row items-center"
-                  style={{
-                    backgroundColor: filters.minRating === rating ? '#D4E95A' : '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: filters.minRating === rating ? '#D4E95A' : '#E5E7EB',
-                  }}
-                >
-                  <Text className="font-semibold mr-1" style={{ color: '#1F2937' }}>
-                    ⭐
-                  </Text>
-                  <Text className="font-semibold" style={{ color: '#1F2937' }}>
-                    {rating}+
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Time Filter */}
-          <View className="mb-6">
-            <Text className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>
-              Maximum Time
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {[15, 30, 45, 60, 90].map((time) => (
-                <TouchableOpacity
-                  key={time}
-                  onPress={() => setTimeFilter(filters.maxTime === time ? null : time)}
-                  className="px-4 py-2.5 rounded-lg flex-row items-center"
-                  style={{
-                    backgroundColor: filters.maxTime === time ? '#D4E95A' : '#FFFFFF',
-                    borderWidth: 1,
-                    borderColor: filters.maxTime === time ? '#D4E95A' : '#E5E7EB',
-                  }}
-                >
-                  <Text className="font-semibold mr-1" style={{ color: '#1F2937' }}>
-                    🕐
-                  </Text>
-                  <Text className="font-semibold" style={{ color: '#1F2937' }}>
-                    {time} min
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Apply Button */}
-          <TouchableOpacity
-            onPress={() => filterSheetRef.current?.close()}
-            className="py-4 rounded-3xl items-center"
-            style={{ backgroundColor: '#D4E95A' }}
-          >
-            <Text className="text-base font-bold" style={{ color: '#1F2937' }}>
-              Apply Filters
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheetComponent>
     </SafeAreaView>
   );
 }

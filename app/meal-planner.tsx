@@ -55,7 +55,7 @@ export default function MealPlannerScreen() {
 
   const loadMyGuides = async () => {
     if (!userId) return;
-    
+
     try {
       setLoadingGuides(true);
 
@@ -110,7 +110,7 @@ export default function MealPlannerScreen() {
 
   const handleSlotPress = async (date: Date, mealType: string) => {
     const meal = getMealForSlot(date, mealType);
-    
+
     if (meal && meal.guideId) {
       // Check if we have complete recipe data stored
       let recipeDetails = {
@@ -124,7 +124,7 @@ export default function MealPlannerScreen() {
         youtube: meal.youtube || undefined,
         tags: meal.tips || undefined,
       };
-      
+
       // If stored data is incomplete, try to get from cache or API
       if (!recipeDetails.ingredients.length || !recipeDetails.instructions.length) {
         try {
@@ -142,7 +142,7 @@ export default function MealPlannerScreen() {
               youtube: completeDetails.youtube || undefined,
               tags: completeDetails.tags || undefined,
             };
-            
+
             // Update the stored meal with complete data for future use
             if (meal.ingredients?.length === 0 || meal.steps?.length === 0) {
               await addMeal({
@@ -168,7 +168,7 @@ export default function MealPlannerScreen() {
           // Continue with stored data even if incomplete
         }
       }
-      
+
       setSelectedRecipe(recipeDetails);
       recipeDetailsSheetRef.current?.expand();
     } else {
@@ -287,7 +287,7 @@ export default function MealPlannerScreen() {
               onPress={() => setViewDays(viewDays === 3 ? 7 : viewDays === 7 ? 3 : 7)}
             >
               <Text className="text-sm font-medium space-medium mr-1" style={{ color: '#313131' }}>
-                {viewDays} days
+                {`${viewDays} days`}
               </Text>
               <ChevronRight width={16} height={16} color="#313131" style={{ transform: [{ rotate: '90deg' }] }} />
             </TouchableOpacity>
@@ -318,9 +318,9 @@ export default function MealPlannerScreen() {
           <View className="px-4">
             {/* Day Headers Row */}
             <View className="flex-row mb-2">
-              <View className="w-24" /> {/* Spacer for meal type labels */}
+              <View className="w-24" /> 
               {displayedDays.map((day) => (
-                <View key={day.toISOString()} className="flex-1 items-center">
+                <Text key={day.toISOString()} className="flex-1 items-center">
                   <Text
                     className="text-xs font-medium space-medium mb-1"
                     style={{ color: '#313131' }}
@@ -333,7 +333,7 @@ export default function MealPlannerScreen() {
                   >
                     {format(day, 'd')}
                   </Text>
-                </View>
+                </Text>
               ))}
             </View>
 
@@ -388,7 +388,7 @@ export default function MealPlannerScreen() {
                                     className="text-xs font-medium text-white text-center"
                                     numberOfLines={1}
                                   >
-                                    {meal.guideTitle}
+                                    {meal.guideTitle || 'Untitled Recipe'}
                                   </Text>
                                 </View>
                               </View>
@@ -409,7 +409,7 @@ export default function MealPlannerScreen() {
         </ScrollView>
 
         {/* View Ingredient Box Button */}
-        
+
       </View>
       <View className="absolute bottom-2 left-0 right-0 px-4">
         <TouchableOpacity

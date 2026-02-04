@@ -19,41 +19,41 @@ export const Text = React.forwardRef<RNText, TextProps>(
     // Parse className to extract font classes
     const fontFamily = React.useMemo(() => {
       if (!className) return undefined;
-      
+
       const classes = className.split(' ').filter(Boolean);
-      
+
       // Check for space font classes (in order of specificity)
       for (const cls of classes) {
         if (FONT_MAP[cls]) {
           return FONT_MAP[cls];
         }
       }
-      
+
       return undefined;
     }, [className]);
 
     // Remove font classes from className to avoid conflicts with NativeWind
     const cleanedClassName = React.useMemo(() => {
       if (!className) return className;
-      
+
       const classes = className.split(' ').filter(Boolean);
       const filtered = classes.filter(cls => !FONT_MAP[cls]);
-      
+
       return filtered.length > 0 ? cn(...filtered) : undefined;
     }, [className]);
 
     // Combine styles
     const combinedStyle = React.useMemo(() => {
       const styles = [];
-      
+
       if (fontFamily) {
         styles.push({ fontFamily });
       }
-      
+
       if (style) {
         styles.push(style);
       }
-      
+
       return styles.length > 0 ? (styles.length === 1 ? styles[0] : styles) : undefined;
     }, [fontFamily, style]);
 
