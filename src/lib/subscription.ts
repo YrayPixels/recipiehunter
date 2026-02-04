@@ -983,7 +983,6 @@ export const diagnosePackages = async (): Promise<void> => {
         return;
       }
     }
-
     // const offerings = await Purchases.getOfferings();
     const allPackages = await getAllPackages();
 
