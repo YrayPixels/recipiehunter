@@ -35,7 +35,7 @@ export const AddIngredientSheet: React.FC<AddIngredientSheetProps> = ({
     >
       <View className="flex-1 px-6 pb-6">
         <View className="flex-row items-center justify-between mb-6">
-          <Text className="text-xl font-bold space-bold" style={{ color: '#313131' }}>
+          <Text className="text-xl  space-bold" style={{ color: '#313131' }}>
             {editingIngredient ? 'Edit Ingredient' : 'Add Ingredient'}
           </Text>
           <TouchableOpacity onPress={onClose} className="p-2">

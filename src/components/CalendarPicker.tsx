@@ -18,22 +18,22 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
 }) => {
   const [currentMonth, setCurrentMonth] = React.useState(selectedDate);
   const today = new Date();
-  
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
+
   // Get first day of week for the month (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfWeek = getDay(monthStart);
   // Adjust for Monday as first day (if first day is Sunday (0), show 6 empty cells)
   const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-  
+
   // Create array with empty cells at the start
   const emptyCells = Array(startOffset).fill(null);
   const allDays = [...emptyCells, ...daysInMonth];
-  
+
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     const newMonth = new Date(currentMonth);
     if (direction === 'prev') {
@@ -43,12 +43,12 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
     }
     setCurrentMonth(newMonth);
   };
-  
+
   const handleDateSelect = (date: Date) => {
     onDateSelect(date);
     onClose();
   };
-  
+
   return (
     <Card className="mb-4">
       <CardContent className="pt-4">
@@ -72,7 +72,7 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
             <ChevronRight width={20} height={20} color="#5a7a5a" />
           </TouchableOpacity>
         </View>
-        
+
         {/* Week Day Headers */}
         <View className="flex-row mb-2">
           {weekDays.map((day) => (
@@ -83,17 +83,17 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
             </View>
           ))}
         </View>
-        
+
         {/* Calendar Grid */}
         <View className="flex-row flex-wrap">
           {allDays.map((day, index) => {
             if (day === null) {
               return <View key={`empty-${index}`} className="w-[14.28%] aspect-square" />;
             }
-            
+
             const isSelected = isSameDay(day, selectedDate);
             const isToday = isSameDay(day, today);
-            
+
             return (
               <TouchableOpacity
                 key={day.toISOString()}
@@ -111,8 +111,8 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
                     isSelected
                       ? 'text-primary-foreground'
                       : isToday
-                      ? 'text-sage font-bold'
-                      : 'text-foreground dark:text-gray-100'
+                        ? 'text-sage '
+                        : 'text-foreground dark:text-gray-100'
                   )}
                 >
                   {format(day, 'd')}

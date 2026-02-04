@@ -151,7 +151,7 @@ export default function IngredientsScreen() {
             <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
               <ChevronLeft width={24} height={24} color="#313131" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold space-bold" style={{ color: '#313131' }}>
+            <Text className="text-xl  space-bold" style={{ color: '#313131' }}>
               Ingredient Box
             </Text>
           </View>
@@ -296,7 +296,7 @@ export default function IngredientsScreen() {
       >
         <View className="flex-1 bg-black/50 items-center justify-center px-4">
           <View className="bg-white rounded-3xl p-6 w-full max-w-sm" style={{ backgroundColor: '#F6FBDE' }}>
-            <Text className="text-xl font-bold space-bold mb-2" style={{ color: '#313131' }}>
+            <Text className="text-xl  space-bold mb-2" style={{ color: '#313131' }}>
               Extract from Meal Planner
             </Text>
             <Text className="text-sm space-regular mb-6" style={{ color: '#666' }}>

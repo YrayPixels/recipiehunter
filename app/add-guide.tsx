@@ -230,7 +230,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
       <View className="flex-1 px-6 pt-6">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-6">
-          <Text className="text-3xl font-bold" style={{ color: '#313131' }}>Add Recipe</Text>
+          <Text className="text-3xl " style={{ color: '#313131' }}>Add Recipe</Text>
           <TouchableOpacity onPress={onClose} className="p-2 -mr-2">
             <Text className="text-2xl" style={{ color: '#313131' }}>✕</Text>
           </TouchableOpacity>
@@ -313,7 +313,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 <View className="flex-row items-center mb-4">
                   <Text className="text-4xl mr-3">🎥</Text>
                   <View className="flex-1">
-                    <Text className="text-lg font-bold mb-1" style={{ color: '#313131' }}>
+                    <Text className="text-lg  mb-1" style={{ color: '#313131' }}>
                       From Video Link
                     </Text>
                     <Text className="text-sm" style={{ color: '#666' }}>
@@ -372,7 +372,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 {file ? (
                   <>
                     <Text className="text-6xl mb-4">✅</Text>
-                    <Text className="text-lg font-bold mb-2" style={{ color: '#313131' }}>
+                    <Text className="text-lg  mb-2" style={{ color: '#313131' }}>
                       Video Selected!
                     </Text>
                     <Text className="text-sm text-center" style={{ color: '#666' }}>
@@ -382,7 +382,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 ) : (
                   <>
                     <Text className="text-6xl mb-4">📱</Text>
-                    <Text className="text-lg font-bold mb-2" style={{ color: '#313131' }}>
+                    <Text className="text-lg  mb-2" style={{ color: '#313131' }}>
                       Choose Video File
                     </Text>
                     <Text className="text-sm text-center" style={{ color: '#666' }}>
@@ -418,7 +418,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 <View className="flex-row items-center mb-5">
                   <Text className="text-4xl mr-3">🤖</Text>
                   <View className="flex-1">
-                    <Text className="text-lg font-bold mb-1" style={{ color: '#313131' }}>
+                    <Text className="text-lg  mb-1" style={{ color: '#313131' }}>
                       AI-Generated Recipe
                     </Text>
                     <Text className="text-sm" style={{ color: '#666' }}>
@@ -598,7 +598,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 <View className="flex-row items-center mb-4">
                   <Text className="text-4xl mr-3">🥕</Text>
                   <View className="flex-1">
-                    <Text className="text-lg font-bold mb-1" style={{ color: '#313131' }}>
+                    <Text className="text-lg  mb-1" style={{ color: '#313131' }}>
                       From Ingredients
                     </Text>
                     <Text className="text-sm" style={{ color: '#666' }}>
@@ -679,12 +679,12 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
             {processing ? (
               <View className="flex-row items-center">
                 <ActivityIndicator color="#313131" />
-                <Text className="ml-3 text-base font-bold" style={{ color: '#313131' }}>
+                <Text className="ml-3 text-base " style={{ color: '#313131' }}>
                   Processing...
                 </Text>
               </View>
             ) : (
-              <Text className="text-lg font-bold" style={{ color: '#313131' }}>
+              <Text className="text-lg " style={{ color: '#313131' }}>
                 {mode === 'ai-recipe' ? '✨ Generate Recipe' : '🚀 Create Recipe'}
               </Text>
             )}
@@ -706,7 +706,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
             <View className="px-4 pt-2">
               {/* Header */}
               <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-2xl font-bold" style={{ color: '#313131' }}>
+                <Text className="text-2xl " style={{ color: '#313131' }}>
                   Generated Recipe
                 </Text>
                 <TouchableOpacity
@@ -731,7 +731,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
               {/* Title */}
               <View className="mb-4">
-                <Text className="text-3xl font-bold mb-2" style={{ color: '#313131' }}>
+                <Text className="text-3xl  mb-2" style={{ color: '#313131' }}>
                   {generatedRecipe.title}
                 </Text>
                 {generatedRecipe.summary && (
@@ -774,7 +774,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-10 h-10 rounded-full bg-red-500 items-center justify-center">
-                      <Text className="text-white font-bold">▶</Text>
+                      <Text className="text-white ">▶</Text>
                     </View>
                     <Text className="text-base font-semibold" style={{ color: '#313131' }}>
                       Watch on YouTube
@@ -787,7 +787,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
               {/* Ingredients */}
               {generatedRecipe.ingredients && generatedRecipe.ingredients.length > 0 && (
                 <View className="mb-4">
-                  <Text className="text-xl font-bold mb-3" style={{ color: '#313131' }}>
+                  <Text className="text-xl  mb-3" style={{ color: '#313131' }}>
                     Ingredients
                   </Text>
                   <View className="bg-white rounded-3xl p-4">
@@ -806,14 +806,14 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
               {/* Instructions */}
               {generatedRecipe.steps && generatedRecipe.steps.length > 0 && (
                 <View className="mb-4">
-                  <Text className="text-xl font-bold mb-3" style={{ color: '#313131' }}>
+                  <Text className="text-xl  mb-3" style={{ color: '#313131' }}>
                     Instructions
                   </Text>
                   <View className="bg-white rounded-3xl p-4">
                     {generatedRecipe.steps.map((step: string, index: number) => (
                       <View key={index} className="flex-row items-start mb-4">
                         <View className="w-6 h-6 rounded-full bg-brand-green items-center justify-center mr-3 mt-1">
-                          <Text className="text-white text-sm font-bold">{index + 1}</Text>
+                          <Text className="text-white text-sm ">{index + 1}</Text>
                         </View>
                         <Text className="flex-1 text-base leading-6" style={{ color: '#313131' }}>
                           {step}
@@ -827,7 +827,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
               {/* Tips */}
               {generatedRecipe.tips && generatedRecipe.tips.length > 0 && (
                 <View className="mb-4">
-                  <Text className="text-xl font-bold mb-3" style={{ color: '#313131' }}>
+                  <Text className="text-xl  mb-3" style={{ color: '#313131' }}>
                     Tips
                   </Text>
                   <View className="bg-white rounded-3xl p-4">
@@ -873,7 +873,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                 }}
                 className="bg-brand-green rounded-3xl p-4 mb-6 items-center"
               >
-                <Text className="text-lg font-bold" style={{ color: '#313131' }}>
+                <Text className="text-lg " style={{ color: '#313131' }}>
                   Save Recipe
                 </Text>
               </TouchableOpacity>

@@ -255,7 +255,7 @@ export default function MealPlannerScreen() {
             <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
               <ChevronLeft width={24} height={24} color="#313131" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold space-bold" style={{ color: '#313131' }}>
+            <Text className="text-xl  space-bold" style={{ color: '#313131' }}>
               Meal plan
             </Text>
           </View>
@@ -268,7 +268,7 @@ export default function MealPlannerScreen() {
               <View className="absolute w-3 h-3 rounded-full bottom-0 left-0" style={{ backgroundColor: '#A855F7' }} />
             </View>
             <View className="flex-1">
-              <Text className="text-3xl text-white font-bold space-bold mb-1">
+              <Text className="text-3xl text-white  space-bold mb-1">
                 {nutritionSummary.calories} Calories
               </Text>
               <Text className="text-sm space-regular" style={{ color: '#666' }}>
@@ -318,7 +318,7 @@ export default function MealPlannerScreen() {
           <View className="px-4">
             {/* Day Headers Row */}
             <View className="flex-row mb-2">
-              <View className="w-24" /> 
+              <View className="w-24" />
               {displayedDays.map((day) => (
                 <Text key={day.toISOString()} className="flex-1 items-center">
                   <Text

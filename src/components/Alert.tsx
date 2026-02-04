@@ -119,7 +119,7 @@ export const Alert: React.FC<AlertProps> = ({
             </View>
 
             {/* Title */}
-            <Text className="text-xl font-bold text-foreground dark:text-gray-100 mb-2 text-center">
+            <Text className="text-xl  text-foreground dark:text-gray-100 mb-2 text-center">
               {title}
             </Text>
 
@@ -158,8 +158,8 @@ export const Alert: React.FC<AlertProps> = ({
                       isDestructive
                         ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/20'
                         : isCancel
-                        ? 'border-border dark:border-gray-700 bg-transparent'
-                        : 'border-primary bg-primary'
+                          ? 'border-border dark:border-gray-700 bg-transparent'
+                          : 'border-primary bg-primary'
                     )}
                     activeOpacity={0.7}
                   >
@@ -169,8 +169,8 @@ export const Alert: React.FC<AlertProps> = ({
                         isDestructive
                           ? 'text-red-600 dark:text-red-400'
                           : isCancel
-                          ? 'text-foreground dark:text-gray-100'
-                          : 'text-primary-foreground'
+                            ? 'text-foreground dark:text-gray-100'
+                            : 'text-primary-foreground'
                       )}
                     >
                       {button.text}

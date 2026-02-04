@@ -61,12 +61,12 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
         youtube: selectedRecipe.youtube || undefined,
         tips: selectedRecipe.tags || undefined,
       });
-      
+
       // Close both sheets and navigate to meal planner
       mealPlannerSheetRef.current?.close();
       bottomSheetRef.current?.close();
       onClose();
-      
+
       // Navigate to meal planner after a short delay to allow sheets to close
       setTimeout(() => {
         router.push('/meal-planner');
@@ -98,7 +98,7 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
               <View className="px-4 pt-2">
                 {/* Header */}
                 <View className="flex-row items-center justify-between mb-4">
-                  <Text className="text-2xl font-bold space-bold" style={{ color: '#313131' }}>
+                  <Text className="text-2xl  space-bold" style={{ color: '#313131' }}>
                     Recipe Details
                   </Text>
                   <TouchableOpacity
@@ -118,7 +118,7 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
 
                 {/* Title and Meta */}
                 <View className="mb-4">
-                  <Text className="text-3xl font-bold mb-2 space-bold" style={{ color: '#313131' }}>
+                  <Text className="text-3xl  mb-2 space-bold" style={{ color: '#313131' }}>
                     {selectedRecipe.title}
                   </Text>
                   <View className="flex-row items-center gap-3">
@@ -172,7 +172,7 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
                   >
                     <View className="flex-row items-center gap-3">
                       <View className="w-10 h-10 rounded-full bg-red-500 items-center justify-center">
-                        <Text className="text-white font-bold">▶</Text>
+                        <Text className="text-white ">▶</Text>
                       </View>
                       <Text className="text-base space-semibold" style={{ color: '#313131' }}>
                         Watch on YouTube
@@ -184,7 +184,7 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
 
                 {/* Ingredients */}
                 <View className="mb-4">
-                  <Text className="text-xl font-bold mb-3 space-bold" style={{ color: '#313131' }}>
+                  <Text className="text-xl  mb-3 space-bold" style={{ color: '#313131' }}>
                     Ingredients
                   </Text>
                   <View className="bg-white rounded-3xl p-4">
@@ -201,14 +201,14 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
 
                 {/* Instructions */}
                 <View className="mb-4">
-                  <Text className="text-xl font-bold mb-3 space-bold" style={{ color: '#313131' }}>
+                  <Text className="text-xl  mb-3 space-bold" style={{ color: '#313131' }}>
                     Instructions
                   </Text>
                   <View className="bg-white rounded-3xl p-4">
                     {selectedRecipe.instructions.map((step, index) => (
                       <View key={index} className="flex-row items-start mb-4">
                         <View className="w-6 h-6 rounded-full bg-brand-green items-center justify-center mr-3 mt-1">
-                          <Text className="text-white text-sm font-bold">{index + 1}</Text>
+                          <Text className="text-white text-sm ">{index + 1}</Text>
                         </View>
                         <Text className="flex-1 text-base space-regular leading-6" style={{ color: '#313131' }}>
                           {step}
@@ -224,7 +224,7 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
           ) : null}
         </View>
       </BottomSheet>
-      
+
       {/* Render AddToMealPlannerSheet outside the parent BottomSheet to avoid nested backdrop issues */}
       {selectedRecipe && (
         <AddToMealPlannerSheet

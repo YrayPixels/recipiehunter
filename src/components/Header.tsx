@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ onEmergency, completionCount = 0
     <View className="py-4">
       <View className="flex-row items-center justify-between mb-4">
         <View className="flex-1">
-          <Text className="text-2xl font-bold text-foreground dark:text-gray-100">Break Free</Text>
+          <Text className="text-2xl  text-foreground dark:text-gray-100">Break Free</Text>
           <Text className="text-sm text-muted-foreground dark:text-gray-400 mt-0.5">{formattedDate}</Text>
         </View>
         <View className="flex-row items-center gap-2">
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({ onEmergency, completionCount = 0
       {/* Progress indicator */}
       <View className="flex-row items-center gap-3 pb-2">
         <View className="flex-1 h-2 bg-secondary dark:bg-gray-700 rounded-full overflow-hidden">
-          <View 
+          <View
             className="h-full bg-primary rounded-full transition-all"
             style={{ width: `${(completionCount / totalItems) * 100}%` }}
           />

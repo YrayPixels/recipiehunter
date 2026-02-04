@@ -624,7 +624,7 @@ export default function ShoppingScreen() {
           activeOpacity={0.7}
         >
           <View className="flex-1">
-            <Text className="text-lg font-bold space-bold mb-1" style={{ color: '#313131' }}>
+            <Text className="text-lg  space-bold mb-1" style={{ color: '#313131' }}>
               {list.name}
             </Text>
             <View className="flex-row items-center">
@@ -687,8 +687,8 @@ export default function ShoppingScreen() {
                 >
                   <View
                     className={`w-6 h-6 rounded-full mr-3 items-center justify-center ${item.checked
-                        ? 'bg-brand-green'
-                        : 'border-2 border-gray-300'
+                      ? 'bg-brand-green'
+                      : 'border-2 border-gray-300'
                       }`}
                   >
                     {item.checked && (
@@ -698,8 +698,8 @@ export default function ShoppingScreen() {
                   <View className="flex-1">
                     <Text
                       className={`text-base space-regular ${item.checked
-                          ? 'line-through text-gray-400'
-                          : 'text-gray-900'
+                        ? 'line-through text-gray-400'
+                        : 'text-gray-900'
                         }`}
                     >
                       {item.name}
@@ -746,7 +746,7 @@ export default function ShoppingScreen() {
               <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2 mr-2">
                 <ChevronLeft width={24} height={24} color="#313131" />
               </TouchableOpacity>
-              <Text className="text-xl font-bold space-bold" style={{ color: '#313131' }}>
+              <Text className="text-xl  space-bold" style={{ color: '#313131' }}>
                 Shopping Lists
               </Text>
             </View>

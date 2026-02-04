@@ -385,7 +385,7 @@ export default function GuidesScreen() {
 
           {/* Recipe Count and Action Buttons */}
           <View className="flex-row items-center justify-between px-4 mt-3">
-            <Text className="text-2xl font-bold" style={{ color: '#1F2937' }}>
+            <Text className="text-2xl " style={{ color: '#1F2937' }}>
               {categoryCount} {selectedCategory === 'all' ? 'recipes' : selectedCategory}
             </Text>
             <View className="flex-row items-center gap-3">
@@ -394,7 +394,7 @@ export default function GuidesScreen() {
                 className="px-4 py-2.5 rounded-3xl"
                 style={{ backgroundColor: '#D4E95A' }}
               >
-                <Text className="font-bold" style={{ color: '#1F2937' }}>+ Add</Text>
+                <Text className="" style={{ color: '#1F2937' }}>+ Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -414,7 +414,7 @@ export default function GuidesScreen() {
             ListEmptyComponent={
               <View className="items-center justify-center">
                 <Text className="text-6xl mb-4">{searchQuery.trim() ? '🔍' : '🍽️'}</Text>
-                <Text className="text-center mb-2 text-xl font-bold" style={{ color: '#1F2937' }}>
+                <Text className="text-center mb-2 text-xl " style={{ color: '#1F2937' }}>
                   {searchQuery.trim() ? 'No matching recipes' : 'No recipes yet'}
                 </Text>
                 <Text className="text-center mb-6 text-sm px-8" style={{ color: '#6B7280' }}>
@@ -428,7 +428,7 @@ export default function GuidesScreen() {
                     className="px-6 py-3 rounded-3xl"
                     style={{ backgroundColor: '#D4E95A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}
                   >
-                    <Text className="font-bold text-base" style={{ color: '#1F2937' }}>+ Create Your First Recipe</Text>
+                    <Text className=" text-base" style={{ color: '#1F2937' }}>+ Create Your First Recipe</Text>
                   </TouchableOpacity>
                 )}
               </View>

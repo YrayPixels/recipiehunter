@@ -34,7 +34,7 @@ export default function ActivityPlannerScreen() {
       const today = new Date();
       const startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
       const endDate = new Date(today.setDate(today.getDate() + 14)).toISOString().split('T')[0];
-      
+
       const data = await activityPlansAPI.getActivityPlans(userId, startDate, endDate);
       setActivities(data.activities || []);
     } catch (error) {
@@ -58,7 +58,7 @@ export default function ActivityPlannerScreen() {
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <View className="flex-1 px-4 pt-4">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white">Activity Planner</Text>
+          <Text className="text-2xl  text-gray-900 dark:text-white">Activity Planner</Text>
           <TouchableOpacity
             onPress={() => router.push('/add-guide')}
             className="bg-green-600 dark:bg-green-700 px-4 py-2 rounded-lg"

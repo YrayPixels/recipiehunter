@@ -360,14 +360,14 @@ export default function DashboardScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 80 }}>
         <View className="px-4 pt-10 pb-8">
-          <View className='w-2/3'>
-            <Text className="text-3xl font-bold mb-2 space-bold" style={{ color: '#313131' }}>
+          <View className='w-3/4'>
+            <Text className="text-3xl mb-2 space-bold text-dark">
               What would you like to cook?
             </Text>
-            <Text className="mb-6 space-regular" style={{ color: '#313131' }}>
+            <Text className="mb-6 space-regular" >
               Your personal recipe and guide keeper
             </Text>
           </View>

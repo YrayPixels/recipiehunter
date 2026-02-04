@@ -39,7 +39,7 @@ export const GuideSelectionSheet: React.FC<GuideSelectionSheetProps> = ({
       onClose={onClose}
     >
       <View className="flex-1 px-4">
-        <Text className="text-2xl font-bold mb-4 space-bold" style={{ color: '#313131' }}>
+        <Text className="text-2xl  mb-4 space-bold" style={{ color: '#313131' }}>
           Select Recipe
         </Text>
         {selectedSlot && (

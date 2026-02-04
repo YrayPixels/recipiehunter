@@ -110,7 +110,7 @@ export default function GuideDetailScreen() {
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Recipe Title with Calories */}
           <View className="px-4 mb-4">
-            <Text className="text-3xl font-bold mb-1" style={{ color: '#313131' }}>
+            <Text className="text-3xl  mb-1" style={{ color: '#313131' }}>
               {guide.title}
               {guide.calories && `, ${guide.calories} Kcal`}
             </Text>
@@ -169,11 +169,11 @@ export default function GuideDetailScreen() {
           {/* Instructions */}
           {guide.steps && guide.steps.length > 0 && (
             <View className="px-4 mb-6">
-              <Text className="text-xl font-bold mb-4" style={{ color: '#313131' }}>Instructions</Text>
+              <Text className="text-xl  mb-4" style={{ color: '#313131' }}>Instructions</Text>
               {guide.steps.map((step, index) => (
                 <View key={index} className="mb-4 flex-row">
                   <View className="w-8 h-8 rounded-full items-center justify-center mr-3 mt-1" style={{ backgroundColor: '#D4E95A' }}>
-                    <Text className="font-bold text-sm" style={{ color: '#313131' }}>{index + 1}</Text>
+                    <Text className=" text-sm" style={{ color: '#313131' }}>{index + 1}</Text>
                   </View>
                   <View className="flex-1">
                     <Text className="text-base leading-6" style={{ color: '#313131' }}>{step}</Text>
@@ -186,7 +186,7 @@ export default function GuideDetailScreen() {
           {/* Ingredients */}
           {guide.ingredients && guide.ingredients.length > 0 && (
             <View className="px-4 mb-6">
-              <Text className="text-xl font-bold mb-4" style={{ color: '#313131' }}>Ingredients</Text>
+              <Text className="text-xl  mb-4" style={{ color: '#313131' }}>Ingredients</Text>
               {guide.ingredients.map((ingredient, index) => (
                 <View
                   key={index}
@@ -201,7 +201,7 @@ export default function GuideDetailScreen() {
           {/* Tips */}
           {guide.tips && guide.tips.length > 0 && (
             <View className="px-4 mb-8">
-              <Text className="text-xl font-bold mb-4" style={{ color: '#313131' }}>Tips</Text>
+              <Text className="text-xl  mb-4" style={{ color: '#313131' }}>Tips</Text>
               {guide.tips.map((tip, index) => (
                 <View
                   key={index}

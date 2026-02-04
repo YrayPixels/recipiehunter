@@ -88,7 +88,7 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
           <View className="mb-6">
             <Lock width={64} height={64} color="#5a7a5a" />
           </View>
-          <Text className="text-2xl font-bold text-foreground dark:text-gray-100 mb-2 text-center">
+          <Text className="text-2xl  text-foreground dark:text-gray-100 mb-2 text-center">
             Biometric Authentication
           </Text>
           <Text className="text-muted-foreground dark:text-gray-400 text-center mb-8">
@@ -118,7 +118,7 @@ export const BiometricAuth: React.FC<BiometricAuthProps> = ({
           <View className="mb-6">
             <Key width={80} height={80} color="#5a7a5a" />
           </View>
-          <Text className="text-2xl font-bold text-foreground dark:text-gray-100 mb-2 text-center">
+          <Text className="text-2xl  text-foreground dark:text-gray-100 mb-2 text-center">
             Unlock Break Free
           </Text>
           <Text className="text-muted-foreground dark:text-gray-400 text-center mb-2">

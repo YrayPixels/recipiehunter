@@ -187,7 +187,7 @@ export const Paywall = React.forwardRef<PaywallRef, PaywallProps>(
           <View className="flex-row items-center justify-between mb-6">
             <View className="flex-row items-center gap-2">
               <Lock width={24} height={24} color={primaryColor} />
-              <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">Premium Feature</Text>
+              <Text className="text-2xl  text-foreground dark:text-foreground-dark">Premium Feature</Text>
             </View>
             <TouchableOpacity
               onPress={handleClose}
@@ -208,7 +208,7 @@ export const Paywall = React.forwardRef<PaywallRef, PaywallProps>(
                 <View className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary-dark/20 items-center justify-center mb-4">
                   <Lock width={32} height={32} color={primaryColor} />
                 </View>
-                <Text className="text-xl font-bold text-center mb-2 text-foreground dark:text-foreground-dark">
+                <Text className="text-xl  text-center mb-2 text-foreground dark:text-foreground-dark">
                   {featureName ||
                     feature.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </Text>
@@ -237,7 +237,7 @@ export const Paywall = React.forwardRef<PaywallRef, PaywallProps>(
                 </Text>
 
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-3xl font-bold text-foreground dark:text-foreground-dark">
+                  <Text className="text-3xl  text-foreground dark:text-foreground-dark">
                     {monthlyPackage?.product.priceString ?? '—'}
                   </Text>
                   <Text className="text-muted-foreground dark:text-muted-foreground-dark">/month</Text>

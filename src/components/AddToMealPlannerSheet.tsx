@@ -72,7 +72,7 @@ export const AddToMealPlannerSheet: React.FC<AddToMealPlannerSheetProps> = ({
       <View className="flex-1 px-4 pt-2">
         {/* Header */}
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-2xl font-bold space-bold" style={{ color: '#313131' }}>
+          <Text className="text-2xl  space-bold" style={{ color: '#313131' }}>
             Add to Meal Planner
           </Text>
           <TouchableOpacity
@@ -104,21 +104,19 @@ export const AddToMealPlannerSheet: React.FC<AddToMealPlannerSheetProps> = ({
               {quickDates.map((quickDate) => {
                 const isSelected = format(selectedDate, 'yyyy-MM-dd') === format(quickDate.date, 'yyyy-MM-dd');
                 const isPastDate = isPast(startOfDay(quickDate.date)) && !isToday(quickDate.date);
-                
+
                 return (
                   <TouchableOpacity
                     key={quickDate.label}
                     onPress={() => !isPastDate && setSelectedDate(quickDate.date)}
                     disabled={isPastDate}
-                    className={`px-4 py-2 rounded-full ${
-                      isSelected ? 'bg-brand-green' : 'bg-white'
-                    } ${isPastDate ? 'opacity-50' : ''}`}
+                    className={`px-4 py-2 rounded-full ${isSelected ? 'bg-brand-green' : 'bg-white'
+                      } ${isPastDate ? 'opacity-50' : ''}`}
                     activeOpacity={0.7}
                   >
                     <Text
-                      className={`font-semibold space-semibold ${
-                        isSelected ? 'text-white' : 'text-[#313131]'
-                      }`}
+                      className={`font-semibold space-semibold ${isSelected ? 'text-white' : 'text-[#313131]'
+                        }`}
                     >
                       {quickDate.label}
                     </Text>
@@ -171,17 +169,15 @@ export const AddToMealPlannerSheet: React.FC<AddToMealPlannerSheetProps> = ({
                   <TouchableOpacity
                     key={mealType.id}
                     onPress={() => setSelectedMealType(mealType.id)}
-                    className={`flex-1 min-w-[45%] rounded-3xl p-4 ${
-                      isSelected ? 'bg-brand-green' : 'bg-white'
-                    }`}
+                    className={`flex-1 min-w-[45%] rounded-3xl p-4 ${isSelected ? 'bg-brand-green' : 'bg-white'
+                      }`}
                     activeOpacity={0.7}
                   >
                     <View className="items-center">
                       <Text className="text-3xl mb-2">{mealType.icon}</Text>
                       <Text
-                        className={`font-semibold space-semibold ${
-                          isSelected ? 'text-white' : 'text-[#313131]'
-                        }`}
+                        className={`font-semibold space-semibold ${isSelected ? 'text-white' : 'text-[#313131]'
+                          }`}
                       >
                         {mealType.label}
                       </Text>
@@ -198,17 +194,15 @@ export const AddToMealPlannerSheet: React.FC<AddToMealPlannerSheetProps> = ({
           <TouchableOpacity
             onPress={handleAdd}
             disabled={!selectedMealType || isAdding}
-            className={`rounded-full py-4 items-center ${
-              selectedMealType && !isAdding
+            className={`rounded-full py-4 items-center ${selectedMealType && !isAdding
                 ? 'bg-brand-green'
                 : 'bg-gray-300'
-            }`}
+              }`}
             activeOpacity={0.8}
           >
             <Text
-              className={`font-semibold space-semibold ${
-                selectedMealType && !isAdding ? 'text-white' : 'text-gray-500'
-              }`}
+              className={`font-semibold space-semibold ${selectedMealType && !isAdding ? 'text-white' : 'text-gray-500'
+                }`}
             >
               {isAdding ? 'Adding...' : 'Add to Meal Planner'}
             </Text>

@@ -217,7 +217,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
                 <Text className="text-xs space-regular" style={{ color: '#666' }}>
                   Your Ingredient Box
                 </Text>
-                <Text className="text-lg font-bold space-bold" style={{ color: '#313131' }}>
+                <Text className="text-lg  space-bold" style={{ color: '#313131' }}>
                   {(userIngredients || []).length}
                 </Text>
               </View>
@@ -225,7 +225,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
                 <Text className="text-xs space-regular" style={{ color: '#666' }}>
                   Meal Plan Needs
                 </Text>
-                <Text className="text-lg font-bold space-bold" style={{ color: '#313131' }}>
+                <Text className="text-lg  space-bold" style={{ color: '#313131' }}>
                   {stats.total}
                 </Text>
               </View>
@@ -274,7 +274,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
             <Text className="text-xs space-regular mb-1" style={{ color: '#666' }}>
               Need to Buy
             </Text>
-            <Text className="text-2xl font-bold space-bold" style={{ color: '#EF4444' }}>
+            <Text className="text-2xl  space-bold" style={{ color: '#EF4444' }}>
               {stats.needToBuy}
             </Text>
           </View>
@@ -282,7 +282,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
             <Text className="text-xs space-regular mb-1" style={{ color: '#666' }}>
               Already Have
             </Text>
-            <Text className="text-2xl font-bold space-bold" style={{ color: '#10B981' }}>
+            <Text className="text-2xl  space-bold" style={{ color: '#10B981' }}>
               {stats.haveEnough}
             </Text>
           </View>
@@ -290,7 +290,7 @@ export const CreateFromMealPlanSheet: React.FC<CreateFromMealPlanSheetProps> = (
             <Text className="text-xs space-regular mb-1" style={{ color: '#666' }}>
               Total Items
             </Text>
-            <Text className="text-2xl font-bold space-bold" style={{ color: '#313131' }}>
+            <Text className="text-2xl  space-bold" style={{ color: '#313131' }}>
               {stats.total}
             </Text>
           </View>

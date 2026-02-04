@@ -134,40 +134,40 @@ export default function RootLayout() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   // Initialize RevenueCat on app startup
-  //   const initRevenueCat = async () => {
-  //     try {
+  useEffect(() => {
+    // Initialize RevenueCat on app startup
+    const initRevenueCat = async () => {
+      try {
 
-  //       const userId = await getUserId();
+        const userId = await getUserId();
 
-  //       await initializePurchases(userId);
+        await initializePurchases(userId);
 
-  //       try {
-  //         const customerInfo = await getCustomerInfo();
-  //         if (customerInfo) {
-  //           console.log("Customer info:", customerInfo);
-  //           await syncSubscriptionStatus(customerInfo);
+        try {
+          const customerInfo = await getCustomerInfo();
+          if (customerInfo) {
+            console.log("Customer info:", customerInfo);
+            await syncSubscriptionStatus(customerInfo);
 
-  //           await logPackagesDetails();
-  //           // Run diagnosis to check for missing packages
-  //           await diagnosePackages();
-  //         } else {
-  //           console.warn("No customer info available, skipping subscription sync");
-  //         }
-  //       } catch (syncError) {
-  //         // If sync fails, continue - local storage will be used as fallback
-  //         console.warn("Failed to sync subscription status:", syncError);
-  //       }
-  //     } catch (error) {
-  //       // Log error but don't block app startup
-  //       // RevenueCat will be initialized on-demand when needed
-  //       console.warn("RevenueCat initialization deferred:", error);
-  //     }
-  //   };
+            await logPackagesDetails();
+            // Run diagnosis to check for missing packages
+            await diagnosePackages();
+          } else {
+            console.warn("No customer info available, skipping subscription sync");
+          }
+        } catch (syncError) {
+          // If sync fails, continue - local storage will be used as fallback
+          console.warn("Failed to sync subscription status:", syncError);
+        }
+      } catch (error) {
+        // Log error but don't block app startup
+        // RevenueCat will be initialized on-demand when needed
+        console.warn("RevenueCat initialization deferred:", error);
+      }
+    };
 
-  //   initRevenueCat();
-  // }, []);
+    initRevenueCat();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

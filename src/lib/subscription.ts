@@ -62,10 +62,10 @@ export const initializePurchases = async (
   // Create a new initialization promise
   initializationPromise = (async () => {
     try {
-      const apiKey = "test_WMLbHzzLhGgXzCVKYpdjyVFmwdi";
-        // Platform.OS === "ios"
-        //     ? REVENUECAT_API_KEY_IOS
-        //     : REVENUECAT_API_KEY_ANDROID;
+      const apiKey =
+        Platform.OS === "ios"
+          ? REVENUECAT_API_KEY_IOS
+          : REVENUECAT_API_KEY_ANDROID;
 
       // Check if running in Expo Go (iOS doesn't support native store in Expo Go)
       if (isExpoGo() && Platform.OS === "ios") {
@@ -82,12 +82,11 @@ export const initializePurchases = async (
           `RevenueCat API key is missing for ${Platform.OS}. Subscription features will be disabled.`
         );
         console.warn(
-          `Environment check: EXPO_PUBLIC_REVENUECAT_API_KEY_${Platform.OS.toUpperCase()}=${
-            Platform.OS === "ios"
-              ? REVENUECAT_API_KEY_IOS
-                ? "SET"
-                : "NOT SET"
-              : REVENUECAT_API_KEY_ANDROID
+          `Environment check: EXPO_PUBLIC_REVENUECAT_API_KEY_${Platform.OS.toUpperCase()}=${Platform.OS === "ios"
+            ? REVENUECAT_API_KEY_IOS
+              ? "SET"
+              : "NOT SET"
+            : REVENUECAT_API_KEY_ANDROID
               ? "SET"
               : "NOT SET"
           }`
@@ -187,14 +186,12 @@ export const getOfferings = async (): Promise<PurchasesOffering | null> => {
       Object.entries(offerings.all).forEach(([key, offering]) => {
         const isCurrent = offering.identifier === offerings.current?.identifier;
         console.log(
-          `    - ${key}${isCurrent ? " (CURRENT)" : ""}: ${
-            offering.availablePackages.length
+          `    - ${key}${isCurrent ? " (CURRENT)" : ""}: ${offering.availablePackages.length
           } package(s)`
         );
         offering.availablePackages.forEach((pkg) => {
           console.log(
-            `      • ${pkg.identifier} (${pkg.packageType}) - Product: ${
-              pkg.product?.identifier || "N/A"
+            `      • ${pkg.identifier} (${pkg.packageType}) - Product: ${pkg.product?.identifier || "N/A"
             }`
           );
         });
@@ -217,8 +214,7 @@ export const getOfferings = async (): Promise<PurchasesOffering | null> => {
     }
 
     console.log(
-      `  Products found in offerings: ${
-        Array.from(allProducts).join(", ") || "None"
+      `  Products found in offerings: ${Array.from(allProducts).join(", ") || "None"
       }`
     );
     const expectedProducts = ["break_monthly", "break_yearly"];
@@ -268,8 +264,7 @@ export const getPackages = async (): Promise<PurchasesPackage[]> => {
     );
     packages.forEach((pkg, index) => {
       console.log(
-        `  ${index + 1}. ${pkg.identifier} (${pkg.packageType}) - ${
-          pkg.product?.title || pkg.product?.identifier || "Unknown"
+        `  ${index + 1}. ${pkg.identifier} (${pkg.packageType}) - ${pkg.product?.title || pkg.product?.identifier || "Unknown"
         } (${pkg.product?.priceString || "No price"})`
       );
     });
@@ -337,8 +332,7 @@ export const getAllPackages = async (): Promise<PurchasesPackage[]> => {
     );
     uniquePackages.forEach((pkg, index) => {
       console.log(
-        `  ${index + 1}. ${pkg.identifier} (${pkg.packageType}) - ${
-          pkg.product?.title || pkg.product?.identifier || "Unknown"
+        `  ${index + 1}. ${pkg.identifier} (${pkg.packageType}) - ${pkg.product?.title || pkg.product?.identifier || "Unknown"
         } (${pkg.product?.priceString || "No price"})`
       );
       console.log(`      Product ID: ${pkg.product?.identifier || "N/A"}`);
@@ -356,8 +350,6 @@ export const getAllPackages = async (): Promise<PurchasesPackage[]> => {
       (pkg) =>
         pkg.identifier === "$rc_annual" ||
         pkg.identifier === "$rc_yearly" ||
-        pkg.packageType === "ANNUAL" ||
-        pkg.packageType === "YEARLY" ||
         pkg.identifier.toLowerCase().includes("yearly") ||
         pkg.identifier.toLowerCase().includes("annual")
     );
@@ -992,7 +984,7 @@ export const diagnosePackages = async (): Promise<void> => {
       }
     }
 
-    const offerings = await Purchases.getOfferings();
+    // const offerings = await Purchases.getOfferings();
     const allPackages = await getAllPackages();
 
     console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
