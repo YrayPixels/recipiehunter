@@ -1,4 +1,4 @@
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
 import React, { useState, useRef } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, Image, Linking } from 'react-native';
 import { guidesAPI, videoAPI, recipeAPI } from '../src/lib/api';
@@ -39,8 +39,8 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
   const handleVideoPick = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      const result = await launchImageLibraryAsync({
+        mediaTypes: MediaTypeOptions.Videos,
         allowsEditing: false,
         quality: 1,
       });
