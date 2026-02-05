@@ -17,6 +17,7 @@ import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useRef } from "react";
 import { AppState, AppStateStatus, Platform, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import "../global.css";
@@ -213,6 +214,7 @@ function LayoutWithBottomNav({ children }: { children: React.ReactNode }) {
 
   return (
     <View className="flex-1">
+      <StatusBar style="dark" />
       <View className="flex-1" >
         {children}
       </View>

@@ -48,18 +48,15 @@ export default function ProfileScreen() {
 
       // Load stats
       if (id) {
-        // Use safe version that never throws or logs errors
         const statsData = await guidesAPI.getStatsSafe(id);
-        
-        // Count cached recipes (also safe)
+
         let totalRecipes = 0;
         try {
           const { countCachedRecipes } = await import('../src/lib/recipeCache');
           totalRecipes = await countCachedRecipes();
         } catch {
-          // Silently fail
         }
-        
+
         setStats({
           guides: statsData?.total || 0,
           recipes: totalRecipes || 0,
@@ -102,10 +99,10 @@ export default function ProfileScreen() {
             {/* Avatar */}
             <View className="w-24 h-24 rounded-full bg-brand-green items-center justify-center mb-4 ">
               <Text className="text-4xl space-bold" style={{ color: '#313131' }}>
-                {getInitials(userId)} 
+                {getInitials(userId)}
               </Text>
             </View>
-            
+
             {/* User Info */}
             <Text className="text-2xl space-bold mb-2" style={{ color: '#313131' }}>
               Welcome Back!
@@ -181,7 +178,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-    
+
 
           {/* Account Info */}
           <View className="mb-6">

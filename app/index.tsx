@@ -360,9 +360,9 @@ export default function DashboardScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }}>
-      <View className="flex-1 border border-red-500">
-        <View className="px-4 pt-10border border-blue-500">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
+      <ScrollView className="flex-1">
+        <View className="px-4 flex-1 justify-between ">
           <View className='w-3/4'>
             <Text className="text-3xl mb-2 space-bold text-dark">
               What would you like to cook?
@@ -372,12 +372,9 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-
-          {/* Quick Stats */}
-
           <View className="flex-row mb-6">
             <Input
-              containerClassName='rounded-3xl border border-brand-green p-4 bg-white'
+              containerClassName='rounded-3xl p-4 bg-white'
               variant="filled"
               value={search}
               leftIcon={<Search color="#313131" />}
@@ -505,7 +502,7 @@ export default function DashboardScreen() {
           )}
 
           {/* Popular Recipes Section */}
-          <View className=' px-2 mb-4 border border-green-500'>
+          <View className='px-2 mb-4'>
             <Text className="text-2xl font-semibold mb-1 space-semibold" style={{ color: '#313131' }}>
               Popular Recipes
             </Text>
@@ -518,7 +515,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
           ) : popularRecipes.length > 0 ? (
-            <ScrollView className='py-2' horizontal showsHorizontalScrollIndicator={false}>
+            <ScrollView className='' horizontal showsHorizontalScrollIndicator={false}>
               {popularRecipes.map((recipe) => (
                 <TouchableOpacity
                   key={recipe.id}
@@ -560,8 +557,11 @@ export default function DashboardScreen() {
               </Text>
             </View>
           )}
+
+
         </View>
-      </View>
+
+      </ScrollView>
 
       {/* Recipe Details Bottom Sheet */}
       <RecipeDetailsSheet

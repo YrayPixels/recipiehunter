@@ -58,7 +58,7 @@ export default function GuidesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'lunch');
+  const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'Recipes');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const bottomSheetRef = useRef<BottomSheet>(null);
   const recipeDetailsSheetRef = useRef<BottomSheet>(null);
@@ -332,9 +332,8 @@ export default function GuidesScreen() {
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
       <View className="flex-1">
-        {/* Category Navigation - Horizontal Scroll */}
         <View className="pt-4 pb-2">
-          <ScrollView
+          {/* <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
@@ -368,10 +367,10 @@ export default function GuidesScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </ScrollView> */}
 
           {/* Search Input */}
-          <View className="px-4 mt-3">
+          <View className="px-4">
             <Input
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -379,13 +378,13 @@ export default function GuidesScreen() {
               leftIcon="🔍"
               variant="filled"
               size="md"
-              containerClassName="bg-white rounded-2xl"
+              containerClassName="bg-white rounded-3xl p-4"
             />
           </View>
 
           {/* Recipe Count and Action Buttons */}
           <View className="flex-row items-center justify-between px-4 mt-3">
-            <Text className="text-2xl " style={{ color: '#1F2937' }}>
+            <Text className="text-xl space-bold" style={{ color: '#1F2937' }}>
               {categoryCount} {selectedCategory === 'all' ? 'recipes' : selectedCategory}
             </Text>
             <View className="flex-row items-center gap-3">
