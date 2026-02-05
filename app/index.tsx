@@ -361,8 +361,8 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }}>
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 80 }}>
-        <View className="px-4 pt-10 pb-8">
+      <View className="flex-1 border border-red-500">
+        <View className="px-4 pt-10border border-blue-500">
           <View className='w-3/4'>
             <Text className="text-3xl mb-2 space-bold text-dark">
               What would you like to cook?
@@ -505,7 +505,7 @@ export default function DashboardScreen() {
           )}
 
           {/* Popular Recipes Section */}
-          <View className=' px-2 mb-4'>
+          <View className=' px-2 mb-4 border border-green-500'>
             <Text className="text-2xl font-semibold mb-1 space-semibold" style={{ color: '#313131' }}>
               Popular Recipes
             </Text>
@@ -561,7 +561,7 @@ export default function DashboardScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </View>
 
       {/* Recipe Details Bottom Sheet */}
       <RecipeDetailsSheet
