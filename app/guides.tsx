@@ -333,6 +333,8 @@ export default function GuidesScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
       <View className="flex-1">
         <View className="pt-4 pb-2">
+
+
           {/* <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
