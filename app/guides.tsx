@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, ScrollView, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useLocalSearchParams } from 'expo-router';
@@ -40,15 +40,6 @@ interface RecipeDetails {
   tags?: string[];
 }
 
-const categories = [
-  { id: 'all', label: 'All', icon: '📚' },
-  { id: 'breakfast', label: 'Breakfast', icon: '🍳', image: require('../assets/images/icons/breakfast.png') },
-  { id: 'lunch', label: 'Lunch', icon: '🍲', image: require('../assets/images/icons/lunch.png') },
-  { id: 'dinner', label: 'Dinner', icon: '🍽️', image: require('../assets/images/icons/lunch.png') },
-  { id: 'drinks', label: 'Drinks', icon: '🥤', image: require('../assets/images/icons/drink.png') },
-  { id: 'dessert', label: 'Dessert', icon: '🍰', image: require('../assets/images/icons/desert.png') },
-  { id: 'snack', label: 'Snack', icon: '🍿', image: require('../assets/images/icons/breakfast.png') },
-];
 
 
 export default function GuidesScreen() {
@@ -59,7 +50,6 @@ export default function GuidesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'Recipes');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const bottomSheetRef = useRef<BottomSheet>(null);
   const recipeDetailsSheetRef = useRef<BottomSheet>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
