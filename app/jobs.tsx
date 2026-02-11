@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, TouchableOpacity, View, Alert } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { videoAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
+import { useAlert } from '../src/hooks/useAlert';
 
 interface ProcessingJob {
   id: string;
@@ -38,6 +39,7 @@ interface RecipeDetails {
 
 export default function JobsScreen() {
   const router = useRouter();
+  const { alert, AlertComponent } = useAlert();
   const [jobs, setJobs] = useState<ProcessingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,7 +88,7 @@ export default function JobsScreen() {
       }
     } catch (error) {
       console.error('Error loading jobs:', error);
-      Alert.alert('Error', 'Failed to load processing jobs');
+      alert('Error', 'Failed to load processing recipes', undefined, 'error');
     } finally {
       setLoading(false);
     }
@@ -144,10 +146,11 @@ export default function JobsScreen() {
       const recipe = job.recipe || job.guide;
       await viewRecipe(recipe);
     } else if (job.status === 'failed') {
-      Alert.alert(
+      alert(
         'Processing Failed',
         job.error || job.errorMessage || 'An error occurred while processing this video.',
-        [{ text: 'OK' }]
+        [{ text: 'OK' }],
+        'error'
       );
     }
   };
@@ -181,7 +184,7 @@ export default function JobsScreen() {
       recipeDetailsSheetRef.current?.expand();
     } catch (error) {
       console.error('Error loading recipe details:', error);
-      Alert.alert('Error', 'Failed to load recipe details');
+      alert('Error', 'Failed to load recipe details', undefined, 'error');
     } finally {
       setLoadingRecipeDetails(false);
     }
@@ -331,10 +334,10 @@ export default function JobsScreen() {
         <View className="flex-row items-center justify-between mb-6">
           <View>
             <Text className="text-3xl font-bold" style={{ color: '#313131' }}>
-              Processing Jobs
+              Processing Recipes
             </Text>
             <Text className="text-sm mt-1" style={{ color: '#666' }}>
-              {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'}
+              {jobs.length} {jobs.length === 1 ? 'recipe' : 'recipes'}
             </Text>
           </View>
           <TouchableOpacity onPress={() => router.back()} className="p-2 -mr-2">
@@ -345,7 +348,7 @@ export default function JobsScreen() {
         {jobs.length === 0 ? (
           <View className="flex-1 items-center justify-center">
             <Text className="text-lg" style={{ color: '#666' }}>
-              No processing jobs yet
+              No processing recipes yet
             </Text>
             <Text className="text-sm mt-2" style={{ color: '#999' }}>
               Process a video to see it here
@@ -376,6 +379,9 @@ export default function JobsScreen() {
         loadingRecipeDetails={loadingRecipeDetails}
         onClose={handleCloseRecipeDetailsSheet}
       />
+
+      {/* Alert Component */}
+      {AlertComponent}
     </SafeAreaView>
   );
 }

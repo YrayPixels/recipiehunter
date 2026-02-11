@@ -1,16 +1,19 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import {
   ChevronLeft,
   Trash2,
 } from 'react-native-feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Text } from '../src/components/Text';
 import { guidesAPI } from '../src/lib/api';
 import { getSettings, saveSettings, UserSettings } from '../src/lib/storage';
 import { getUserId } from '../src/lib/userid';
+import { useAlert } from '../src/hooks/useAlert';
+import { getCustomerInfo, syncSubscriptionStatus } from '../src/lib/subscription';
 
 const CUISINES = [
   { value: 'nigerian', label: 'Nigerian 🇳🇬' },
@@ -61,6 +64,7 @@ interface FoodPreferences {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { alert, AlertComponent } = useAlert();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ guides: 0, lists: 0, reminders: 0 });
@@ -75,6 +79,26 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Refresh subscription status when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const refreshSubscription = async () => {
+        try {
+          const customerInfo = await getCustomerInfo();
+          if (customerInfo) {
+            await syncSubscriptionStatus(customerInfo);
+            // Reload settings to get updated subscription info
+            const updatedSettings = await getSettings();
+            setSettings(updatedSettings);
+          }
+        } catch (error) {
+          console.error('Error refreshing subscription status:', error);
+        }
+      };
+      refreshSubscription();
+    }, [])
+  );
 
   const loadData = async () => {
     try {
@@ -123,7 +147,7 @@ export default function SettingsScreen() {
 
     await saveSettings(updated);
     setSettings(updated);
-    Alert.alert('Success', 'Preferences saved!');
+    alert('Success', 'Preferences saved!', undefined, 'success');
   };
 
   const toggleGoal = (goalValue: string) => {
@@ -391,7 +415,7 @@ export default function SettingsScreen() {
               <View className="bg-white rounded-3xl p-4 border-2 border-brand-pink">
                 <TouchableOpacity
                   onPress={() => {
-                    Alert.alert(
+                    alert(
                       'Delete Account',
                       'This will permanently delete your account and all data. This cannot be undone.',
                       [
@@ -400,10 +424,11 @@ export default function SettingsScreen() {
                           text: 'Delete',
                           style: 'destructive',
                           onPress: () => {
-                            Alert.alert('Info', 'Account deletion is not yet implemented. Please contact support.');
+                            alert('Info', 'Account deletion is not yet implemented. Please contact support.', undefined, 'info');
                           },
                         },
-                      ]
+                      ],
+                      'warning'
                     );
                   }}
                   className="w-full py-3 px-4 rounded-3xl bg-brand-pink items-center"
@@ -424,6 +449,9 @@ export default function SettingsScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* Alert Component */}
+      {AlertComponent}
     </SafeAreaView>
   );
 }

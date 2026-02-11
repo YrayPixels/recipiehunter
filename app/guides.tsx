@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { guidesAPI, mealDBAPI, videoAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
@@ -93,6 +94,16 @@ export default function GuidesScreen() {
       loadActiveJobs();
     }
   }, [userId]);
+
+  // Refresh recipes when screen comes into focus (e.g., after minimizing add-guide)
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        loadGuides();
+        loadActiveJobs();
+      }
+    }, [userId])
+  );
 
   const applySearch = () => {
     if (!searchQuery.trim()) {

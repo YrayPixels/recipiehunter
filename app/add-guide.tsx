@@ -1,6 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import React, { useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, Linking } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { guidesAPI, videoAPI, recipeAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
@@ -8,6 +8,7 @@ import BottomSheetLib from '@gorhom/bottom-sheet';
 import { BottomSheet } from '../src/components/BottomSheet';
 import { X, ExternalLink } from 'react-native-feather';
 import { OptimizedImage } from '../src/components/OptimizedImage';
+import { useAlert } from '../src/hooks/useAlert';
 
 type Mode = 'url' | 'upload' | 'ai-recipe' | 'ingredients';
 
@@ -18,6 +19,7 @@ interface AddGuideProps {
 
 export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
   const router = useRouter();
+  const { alert, AlertComponent } = useAlert();
   const params = useLocalSearchParams<{ mode?: string; ingredients?: string }>();
   const [mode, setMode] = useState<Mode>((params.mode as Mode) || 'url');
   const [url, setUrl] = useState('');
@@ -86,7 +88,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
           // Check if recipe is available in the status
           const recipe = status.job?.recipe || status.recipe || status.guide;
           
-          Alert.alert('Success', 'Recipe created successfully!', [
+          alert('Success', 'Recipe created successfully!', [
             {
               text: 'View Recipe',
               onPress: () => {
@@ -106,13 +108,13 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
             },
             {
               text: 'OK',
-              style: 'cancel',
+              style: 'default',
               onPress: () => {
                 onClose();
                 onSuccess?.();
               }
             }
-          ]);
+          ], 'success');
         } else if (status.status === 'failed') {
           clearInterval(interval);
           setProcessing(false);
@@ -155,14 +157,14 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
             setProcessing(false);
             setProgress(100);
             setCurrentStep('Done!');
-            Alert.alert('Success', 'Guide created successfully!', [
+            alert('Success', 'Guide created successfully!', [
               {
                 text: 'OK', onPress: () => {
                   onClose();
                   onSuccess?.();
                 }
               },
-            ]);
+            ], 'success');
           } else if (urlResult.jobId) {
             setCurrentStep('Processing in background...');
             startPolling(urlResult.jobId);
@@ -186,14 +188,14 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
             setProcessing(false);
             setProgress(100);
             setCurrentStep('Done!');
-            Alert.alert('Success', 'Guide created successfully!', [
+            alert('Success', 'Guide created successfully!', [
               {
                 text: 'OK', onPress: () => {
                   onClose();
                   onSuccess?.();
                 }
               },
-            ]);
+            ], 'success');
           } else if (uploadResult.jobId) {
             setCurrentStep('Processing in background...');
             startPolling(uploadResult.jobId);
@@ -1039,7 +1041,7 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                           : { mealType, servings, vibe, cuisine, spiceLevel }
                       }
                     );
-                    Alert.alert('Success', 'Recipe saved successfully!', [
+                    alert('Success', 'Recipe saved successfully!', [
                       {
                         text: 'OK',
                         onPress: () => {
@@ -1049,9 +1051,9 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                           onSuccess?.();
                         }
                       }
-                    ]);
+                    ], 'success');
                   } catch (error: any) {
-                    Alert.alert('Error', error.message || 'Failed to save recipe');
+                    alert('Error', error.message || 'Failed to save recipe', undefined, 'error');
                   }
                 }}
                 className="bg-brand-green rounded-3xl p-4 mb-6 items-center"
@@ -1064,6 +1066,9 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
           </ScrollView>
         </BottomSheet>
       )}
+
+      {/* Alert Component */}
+      {AlertComponent}
     </View>
   );
 }

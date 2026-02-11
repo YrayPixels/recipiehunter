@@ -1,10 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { guidesAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { OptimizedImage } from '../src/components/OptimizedImage';
+import { useAlert } from '../src/hooks/useAlert';
 
 interface Guide {
   id: string;
@@ -28,6 +29,7 @@ interface Guide {
 
 export default function GuideDetailScreen() {
   const router = useRouter();
+  const { alert, AlertComponent } = useAlert();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [guide, setGuide] = useState<Guide | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function GuideDetailScreen() {
       setGuide(data);
     } catch (error) {
       console.error('Error loading guide:', error);
-      Alert.alert('Error', 'Failed to load guide');
+      alert('Error', 'Failed to load guide', undefined, 'error');
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function GuideDetailScreen() {
   const handleDelete = async () => {
     if (!id) return;
 
-    Alert.alert(
+    alert(
       'Delete Guide',
       'Are you sure you want to delete this guide?',
       [
@@ -67,11 +69,12 @@ export default function GuideDetailScreen() {
               await guidesAPI.delete(id);
               router.back();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete guide');
+              alert('Error', 'Failed to delete guide', undefined, 'error');
             }
           },
         },
-      ]
+      ],
+      'warning'
     );
   };
 
@@ -229,6 +232,9 @@ export default function GuideDetailScreen() {
           </View>
         </ScrollView>
       </View>
+
+      {/* Alert Component */}
+      {AlertComponent}
     </SafeAreaView>
   );
 }

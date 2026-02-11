@@ -19,10 +19,21 @@ import { getSettings, saveSettings, UserSettings } from "./storage";
 export const PREMIUM_ENTITLEMENT = "Premium";
 export const BREAKFREE_PRO_ENTITLEMENT = "Breakfree Pro";
 
-const REVENUECAT_API_KEY_IOS =
-  process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS || "";
-const REVENUECAT_API_KEY_ANDROID =
-  process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID || "";
+// Helper function to safely get environment variable, handling literal template strings
+const getEnvVar = (envVar: string | undefined): string => {
+  // If envVar is the literal template string (not replaced), return empty string
+  if (envVar === '${EXPO_PUBLIC_REVENUECAT_API_KEY_IOS}' ||
+    envVar === '${EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID}') {
+    if (__DEV__) {
+      console.warn(`⚠️  RevenueCat API key is not set or not replaced. Using empty string.`);
+    }
+    return "";
+  }
+  return envVar || "";
+};
+
+const REVENUECAT_API_KEY_IOS = getEnvVar(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_IOS);
+const REVENUECAT_API_KEY_ANDROID = getEnvVar(process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID);
 
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
@@ -215,7 +226,7 @@ export const resetPurchases = async (): Promise<void> => {
         console.warn("RevenueCat logOut failed (may not be logged in):", error);
       }
     }
-    
+
     // Reset internal state
     isInitialized = false;
     currentUserId = undefined;

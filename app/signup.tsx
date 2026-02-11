@@ -155,6 +155,14 @@ export default function SignupScreen() {
                 disabled={loading}
               />
 
+              {isLogin && (
+                <View className="mb-4 p-3 bg-blue-50 rounded-2xl">
+                  <Text className="text-sm space-regular text-blue-700">
+                    💡 For testing, use: moseserhinyodavwe2@gmail.com
+                  </Text>
+                </View>
+              )}
+
               {!isLogin && (
                 <Input
                   label="Full Name (Optional)"

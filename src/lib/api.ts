@@ -6,7 +6,29 @@ import { cacheRecipe } from './recipeCache';
 
 // Get API URL from environment or use default
 // For production, update this to your recipehunter server URL
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://10.12.77.101:3002';
+// Priority: 1. expoConfig.extra.apiUrl (from app.config.js) 2. process.env (build-time) 3. default
+const API_URL = (() => {
+  const fromConfig = Constants.expoConfig?.extra?.apiUrl;
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  const defaultValue = 'http://10.12.77.101:3002';
+
+  // Debug logging (only in dev)
+  if (__DEV__) {
+    console.log('API URL resolution:', {
+      fromConfig,
+      fromEnv,
+      defaultValue,
+      final: fromConfig || fromEnv || defaultValue
+    });
+  }
+
+  // If fromEnv is the literal string template, ignore it
+  if (fromEnv === '${EXPO_PUBLIC_API_URL}') {
+    return fromConfig || defaultValue;
+  }
+
+  return fromConfig || fromEnv || defaultValue;
+})();
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

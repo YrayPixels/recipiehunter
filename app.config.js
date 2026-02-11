@@ -1,10 +1,30 @@
 require('dotenv').config();
 
+// Get API URL from environment, with validation
+const getApiUrl = () => {
+    const envUrl = process.env.EXPO_PUBLIC_API_URL;
+    const defaultUrl = "http://10.12.77.101:3002";
+
+    // If envUrl is the literal template string (not replaced), ignore it
+    if (envUrl === '${EXPO_PUBLIC_API_URL}') {
+        console.warn('⚠️  EXPO_PUBLIC_API_URL is not set or not replaced. Using default URL.');
+        return defaultUrl;
+    }
+
+    // If envUrl is set and valid, use it
+    if (envUrl && envUrl.trim() && envUrl !== '') {
+        return envUrl;
+    }
+
+    // Otherwise use default
+    return defaultUrl;
+};
+
 module.exports = {
     expo: {
         name: "Recipe Hunter",
         slug: "recipe-hunter",
-        version: "1.0.0",
+        version: "1.0.1",
         orientation: "portrait",
         icon: "./assets/images/logo_bg.png",
         scheme: "recipe-hunter",
@@ -31,7 +51,7 @@ module.exports = {
                 "android.permission.READ_MEDIA_IMAGES",
                 "android.permission.CAMERA"
             ],
-            versionCode: 1
+            versionCode: 2
         },
         ios: {
             bundleIdentifier: "com.yraylabs.recipehunter",
@@ -80,9 +100,9 @@ module.exports = {
             eas: {
                 projectId: "74429156-8b41-4a5b-a612-6ceb7e156ab5"
             },
-            apiUrl: process.env.EXPO_PUBLIC_API_URL || "http://10.12.77.101:3002"
+            apiUrl: getApiUrl()
         },
-        runtimeVersion: "1.0.0",
+        runtimeVersion: "1.0.1",
         updates: {
             url: ""
         }

@@ -19,51 +19,82 @@ function incrementVersion(version) {
   }
 }
 
-// Function to read and parse app.json
-function readAppJson() {
-  const appJsonPath = path.join(__dirname, '..', 'app.json');
-  const appJsonContent = fs.readFileSync(appJsonPath, 'utf8');
-  return JSON.parse(appJsonContent);
+// Function to read app.config.js
+function readAppConfig() {
+  const appConfigPath = path.join(__dirname, '..', 'app.config.js');
+  return fs.readFileSync(appConfigPath, 'utf8');
 }
 
-// Function to write app.json
-function writeAppJson(appJson) {
-  const appJsonPath = path.join(__dirname, '..', 'app.json');
-  fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, 2) + '\n');
+// Function to extract version from app.config.js
+function extractVersion(configContent) {
+  const versionMatch = configContent.match(/version:\s*"([^"]+)"/);
+  const versionCodeMatch = configContent.match(/versionCode:\s*(\d+)/);
+  const runtimeVersionMatch = configContent.match(/runtimeVersion:\s*"([^"]+)"/);
+
+  return {
+    version: versionMatch ? versionMatch[1] : null,
+    versionCode: versionCodeMatch ? parseInt(versionCodeMatch[1]) : null,
+    runtimeVersion: runtimeVersionMatch ? runtimeVersionMatch[1] : null
+  };
+}
+
+// Function to write app.config.js with updated versions
+function writeAppConfig(configContent, newVersion, newVersionCode) {
+  const appConfigPath = path.join(__dirname, '..', 'app.config.js');
+
+  // Replace version
+  let updatedContent = configContent.replace(
+    /version:\s*"[^"]+"/,
+    `version: "${newVersion}"`
+  );
+
+  // Replace versionCode
+  updatedContent = updatedContent.replace(
+    /versionCode:\s*\d+/,
+    `versionCode: ${newVersionCode}`
+  );
+
+  // Replace runtimeVersion
+  updatedContent = updatedContent.replace(
+    /runtimeVersion:\s*"[^"]+"/,
+    `runtimeVersion: "${newVersion}"`
+  );
+
+  fs.writeFileSync(appConfigPath, updatedContent, 'utf8');
 }
 
 // Function to bump versions
 function bumpVersions() {
   console.log('🚀 Starting version bump process...');
-  
+
   try {
-    // Read current app.json
-    const appJson = readAppJson();
-    
-    // Store original values
-    const originalVersion = appJson.expo.version;
-    const originalVersionCode = appJson.expo.android.versionCode;
-    const originalRuntimeVersion = appJson.expo.runtimeVersion;
-    
+    // Read current app.config.js
+    const configContent = readAppConfig();
+
+    // Extract current values
+    const currentValues = extractVersion(configContent);
+    const originalVersion = currentValues.version;
+    const originalVersionCode = currentValues.versionCode;
+    const originalRuntimeVersion = currentValues.runtimeVersion;
+
+    if (!originalVersion || originalVersionCode === null || !originalRuntimeVersion) {
+      throw new Error('Could not extract version information from app.config.js');
+    }
+
     // Increment version
     const newVersion = incrementVersion(originalVersion);
     const newVersionCode = originalVersionCode + 1;
-    
+
     console.log(`📦 Current version: ${originalVersion} -> ${newVersion}`);
     console.log(`🔢 Current versionCode: ${originalVersionCode} -> ${newVersionCode}`);
     console.log(`⚡ Current runtimeVersion: ${originalRuntimeVersion} -> ${newVersion}`);
-    
-    // Update app.json
-    appJson.expo.version = newVersion;
-    appJson.expo.android.versionCode = newVersionCode;
-    appJson.expo.runtimeVersion = newVersion;
-    
-    // Write updated app.json
-    writeAppJson(appJson);
-    
+
+    // Write updated app.config.js
+    writeAppConfig(configContent, newVersion, newVersionCode);
+
     console.log('✅ Version bump completed successfully!');
-    console.log(`📝 Updated app.json with version ${newVersion} and versionCode ${newVersionCode}`);
-    
+    console.log(`📝 Updated app.config.js with version ${newVersion} and versionCode ${newVersionCode}`);
+
     return true;
   } catch (error) {
     console.error('❌ Error during version bump:', error.message);
@@ -75,7 +106,7 @@ function bumpVersions() {
 function runPrebuild() {
   console.log('🔨 Running expo prebuild...');
   try {
-    execSync('npx expo prebuild', { 
+    execSync('npx expo prebuild', {
       stdio: 'inherit',
       cwd: path.join(__dirname, '..')
     });
@@ -110,25 +141,25 @@ function runOriginalBuild() {
 function main() {
   console.log('🎯 HeySolana Version Bump & Build Script');
   console.log('==========================================');
-  
+
   // Step 1: Bump versions
   if (!bumpVersions()) {
     console.error('❌ Version bump failed. Exiting...');
     process.exit(1);
   }
-  
+
   // Step 2: Run prebuild
   if (!runPrebuild()) {
     console.error('❌ Prebuild failed. Exiting...');
     process.exit(1);
   }
-  
+
   // Step 3: Run original build
   if (!runOriginalBuild()) {
     console.error('❌ Build failed. Exiting...');
     process.exit(1);
   }
-  
+
   console.log('🎉 All processes completed successfully!');
 }
 
