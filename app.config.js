@@ -24,7 +24,7 @@ module.exports = {
     expo: {
         name: "Recipe Hunter",
         slug: "recipe-hunter",
-        version: "1.0.1",
+        version: "1.0.2",
         orientation: "portrait",
         icon: "./assets/images/logo_bg.png",
         scheme: "recipe-hunter",
@@ -51,7 +51,7 @@ module.exports = {
                 "android.permission.READ_MEDIA_IMAGES",
                 "android.permission.CAMERA"
             ],
-            versionCode: 2
+            versionCode: 3
         },
         ios: {
             bundleIdentifier: "com.yraylabs.recipehunter",
@@ -102,7 +102,7 @@ module.exports = {
             },
             apiUrl: getApiUrl()
         },
-        runtimeVersion: "1.0.1",
+        runtimeVersion: "1.0.2",
         updates: {
             url: ""
         }
