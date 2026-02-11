@@ -1,13 +1,10 @@
 import * as DocumentPicker from 'expo-document-picker';
 import React, { useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View, Linking } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { guidesAPI, videoAPI, recipeAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
-import BottomSheetLib from '@gorhom/bottom-sheet';
-import { BottomSheet } from '../src/components/BottomSheet';
-import { X, ExternalLink } from 'react-native-feather';
-import { OptimizedImage } from '../src/components/OptimizedImage';
+import { X } from 'react-native-feather';
 import { useAlert } from '../src/hooks/useAlert';
 
 type Mode = 'url' | 'upload' | 'ai-recipe' | 'ingredients';
@@ -15,9 +12,10 @@ type Mode = 'url' | 'upload' | 'ai-recipe' | 'ingredients';
 interface AddGuideProps {
   onClose: () => void;
   onSuccess?: () => void;
+  onRecipeGenerated?: (recipe: any, mode: 'ai-recipe' | 'ingredients', preferences: any) => void;
 }
 
-export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
+export function AddGuide({ onClose, onSuccess, onRecipeGenerated }: AddGuideProps) {
   const router = useRouter();
   const { alert, AlertComponent } = useAlert();
   const params = useLocalSearchParams<{ mode?: string; ingredients?: string }>();
@@ -52,9 +50,6 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
   const [cookingTime, setCookingTime] = useState('30-60');
   const [skillLevel, setSkillLevel] = useState('intermediate');
 
-  // Generated recipe state
-  const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
-  const recipeSheetRef = useRef<BottomSheetLib>(null);
 
   const handleVideoPick = async () => {
     try {
@@ -216,15 +211,18 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
         if (result.success && result.recipes && result.recipes.length > 0) {
           const recipe = result.recipes[0];
-          setGeneratedRecipe(recipe);
           setProcessing(false);
           setProgress(100);
           setCurrentStep('Done!');
 
-          // Show bottom sheet with generated recipe
-          setTimeout(() => {
-            recipeSheetRef.current?.expand();
-          }, 300);
+          // Use callback to show recipe sheet at parent level
+          onRecipeGenerated?.(recipe, 'ai-recipe', {
+            mealType,
+            servings,
+            vibe,
+            cuisine,
+            spiceLevel,
+          });
         } else {
           throw new Error(result.error || 'Failed to generate recipe');
         }
@@ -264,15 +262,19 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
           // Store the first generated recipe (or let user select from multiple)
           // For now, we'll show the first one
           const firstRecipe = result.recipes[0];
-          setGeneratedRecipe(firstRecipe);
           setProcessing(false);
           setProgress(100);
           setCurrentStep('Done!');
 
-          // Show bottom sheet with generated recipe
-          setTimeout(() => {
-            recipeSheetRef.current?.expand();
-          }, 300);
+          // Use callback to show recipe sheet at parent level
+          onRecipeGenerated?.(firstRecipe, 'ingredients', {
+            mealType,
+            servings,
+            cookingTime,
+            skillLevel,
+            dietary,
+            userIngredients: ingredientsArray,
+          });
         } else {
           throw new Error(result.error || 'Failed to generate recipes from ingredients');
         }
@@ -874,198 +876,6 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
         </ScrollView>
       </View>
 
-      {/* Generated Recipe Bottom Sheet */}
-      {generatedRecipe && (
-        <BottomSheet
-          bottomSheetRef={recipeSheetRef}
-          snapPoints={['85%', '95%']}
-          onClose={() => {
-            setGeneratedRecipe(null);
-          }}
-          backgroundStyle={{ backgroundColor: '#F6FBDE' }}
-        >
-          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-            <View className="px-4 pt-2">
-              {/* Header */}
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-2xl " style={{ color: '#313131' }}>
-                  Generated Recipe
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    recipeSheetRef.current?.close();
-                    setGeneratedRecipe(null);
-                  }}
-                  className="w-10 h-10 rounded-full items-center justify-center bg-white"
-                >
-                  <X width={20} height={20} color="#313131" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Recipe Image */}
-              {generatedRecipe.thumbnailUrl && (
-                <OptimizedImage
-                  source={generatedRecipe.thumbnailUrl}
-                  containerClassName="w-full h-48 rounded-3xl mb-4 overflow-hidden"
-                  style={{ width: '100%', height: 192 }}
-                  contentFit="cover"
-                />
-              )}
-
-              {/* Title */}
-              <View className="mb-4">
-                <Text className="text-3xl  mb-2" style={{ color: '#313131' }}>
-                  {generatedRecipe.title}
-                </Text>
-                {generatedRecipe.summary && (
-                  <Text className="text-base" style={{ color: '#666' }}>
-                    {generatedRecipe.summary}
-                  </Text>
-                )}
-              </View>
-
-              {/* Meta Info */}
-              <View className="flex-row items-center gap-3 mb-4">
-                {generatedRecipe.duration && (
-                  <View className="bg-white px-3 py-1 rounded-full">
-                    <Text className="text-sm font-semibold" style={{ color: '#313131' }}>
-                      ⏱️ {generatedRecipe.duration}
-                    </Text>
-                  </View>
-                )}
-                {generatedRecipe.servings && (
-                  <View className="bg-white px-3 py-1 rounded-full">
-                    <Text className="text-sm font-semibold" style={{ color: '#313131' }}>
-                      👥 {generatedRecipe.servings}
-                    </Text>
-                  </View>
-                )}
-                {generatedRecipe.difficulty && (
-                  <View className="bg-white px-3 py-1 rounded-full">
-                    <Text className="text-sm font-semibold" style={{ color: '#313131' }}>
-                      {generatedRecipe.difficulty}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* YouTube Link */}
-              {generatedRecipe.youtube && (
-                <TouchableOpacity
-                  onPress={() => Linking.openURL(generatedRecipe.youtube)}
-                  className="bg-white rounded-3xl p-4 mb-4 flex-row items-center justify-between"
-                >
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-10 h-10 rounded-full bg-red-500 items-center justify-center">
-                      <Text className="text-white ">▶</Text>
-                    </View>
-                    <Text className="text-base font-semibold" style={{ color: '#313131' }}>
-                      Watch on YouTube
-                    </Text>
-                  </View>
-                  <ExternalLink width={20} height={20} color="#313131" />
-                </TouchableOpacity>
-              )}
-
-              {/* Ingredients */}
-              {generatedRecipe.ingredients && generatedRecipe.ingredients.length > 0 && (
-                <View className="mb-4">
-                  <Text className="text-xl  mb-3" style={{ color: '#313131' }}>
-                    Ingredients
-                  </Text>
-                  <View className="bg-white rounded-3xl p-4">
-                    {generatedRecipe.ingredients.map((ingredient: string, index: number) => (
-                      <View key={index} className="flex-row items-start mb-2">
-                        <View className="w-2 h-2 rounded-full bg-brand-green mt-2 mr-3" />
-                        <Text className="flex-1 text-base" style={{ color: '#313131' }}>
-                          {ingredient}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Instructions */}
-              {generatedRecipe.steps && generatedRecipe.steps.length > 0 && (
-                <View className="mb-4">
-                  <Text className="text-xl  mb-3" style={{ color: '#313131' }}>
-                    Instructions
-                  </Text>
-                  <View className="bg-white rounded-3xl p-4">
-                    {generatedRecipe.steps.map((step: string, index: number) => (
-                      <View key={index} className="flex-row items-start mb-4">
-                        <View className="w-6 h-6 rounded-full bg-brand-green items-center justify-center mr-3 mt-1">
-                          <Text className="text-white text-sm ">{index + 1}</Text>
-                        </View>
-                        <Text className="flex-1 text-base leading-6" style={{ color: '#313131' }}>
-                          {step}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Tips */}
-              {generatedRecipe.tips && generatedRecipe.tips.length > 0 && (
-                <View className="mb-4">
-                  <Text className="text-xl  mb-3" style={{ color: '#313131' }}>
-                    Tips
-                  </Text>
-                  <View className="bg-white rounded-3xl p-4">
-                    {generatedRecipe.tips.map((tip: string, index: number) => (
-                      <View key={index} className="flex-row items-start mb-2">
-                        <Text className="text-2xl mr-2">💡</Text>
-                        <Text className="flex-1 text-base" style={{ color: '#313131' }}>
-                          {tip}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Save Button */}
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    const userId = await getUserId();
-                    await recipeAPI.saveSelected(
-                      generatedRecipe,
-                      userId,
-                      {
-                        generatedBy: mode === 'ingredients' ? 'from-ingredients' : 'quick-recipe',
-                        preferences: mode === 'ingredients' 
-                          ? { mealType, servings, cookingTime, skillLevel, dietary, userIngredients: ingredients.split(',').map(i => i.trim()) }
-                          : { mealType, servings, vibe, cuisine, spiceLevel }
-                      }
-                    );
-                    alert('Success', 'Recipe saved successfully!', [
-                      {
-                        text: 'OK',
-                        onPress: () => {
-                          recipeSheetRef.current?.close();
-                          setGeneratedRecipe(null);
-                          onClose();
-                          onSuccess?.();
-                        }
-                      }
-                    ], 'success');
-                  } catch (error: any) {
-                    alert('Error', error.message || 'Failed to save recipe', undefined, 'error');
-                  }
-                }}
-                className="bg-brand-green rounded-3xl p-4 mb-6 items-center"
-              >
-                <Text className="text-lg " style={{ color: '#313131' }}>
-                  Save Recipe
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </BottomSheet>
-      )}
 
       {/* Alert Component */}
       {AlertComponent}

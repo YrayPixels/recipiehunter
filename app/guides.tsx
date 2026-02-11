@@ -14,6 +14,7 @@ import { getAllCachedRecipes } from '../src/lib/recipeCache';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
 import { OptimizedImage } from '../src/components/OptimizedImage';
 import { RecipeListItemSkeleton } from '../src/components/SkeletonLoader';
+import { GeneratedRecipeSheet } from '../src/components/GeneratedRecipeSheet';
 
 interface Guide {
   id: string;
@@ -64,12 +65,14 @@ export default function GuidesScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'Recipes');
   const bottomSheetRef = useRef<BottomSheet>(null);
   const recipeDetailsSheetRef = useRef<BottomSheet>(null);
+  const generatedRecipeSheetRef = useRef<BottomSheet>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
   const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeJobs, setActiveJobs] = useState<ProcessingJob[]>([]);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const activeJobsRef = useRef<ProcessingJob[]>([]);
+  const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
 
   useEffect(() => {
     loadUserId();
@@ -366,6 +369,22 @@ export default function GuidesScreen() {
     setSelectedRecipe(null);
   };
 
+  const handleShowGeneratedRecipe = (recipe: any, mode: 'ai-recipe' | 'ingredients', preferences: any) => {
+    // Close the add-guide sheet first
+    bottomSheetRef.current?.close();
+    // Set the generated recipe with mode and preferences
+    setGeneratedRecipe({ recipe, mode, preferences });
+    // Small delay to ensure parent sheet closes first
+    setTimeout(() => {
+      generatedRecipeSheetRef.current?.expand();
+    }, 300);
+  };
+
+  const handleCloseGeneratedRecipeSheet = () => {
+    generatedRecipeSheetRef.current?.close();
+    setGeneratedRecipe(null);
+  };
+
   const getCategoryCount = (category: string) => {
     if (category === 'all') return filteredGuides.length;
     return filteredGuides.filter(g => g.category === category).length;
@@ -641,6 +660,7 @@ export default function GuidesScreen() {
           onSuccess={() => {
             loadGuides();
           }}
+          onRecipeGenerated={handleShowGeneratedRecipe}
         />
       </BottomSheetComponent>
 
@@ -651,6 +671,26 @@ export default function GuidesScreen() {
         loadingRecipeDetails={loadingRecipeDetails}
         onClose={handleCloseRecipeDetailsSheet}
       />
+
+      {/* Generated Recipe Bottom Sheet */}
+      {generatedRecipe && (
+        <BottomSheetComponent
+          bottomSheetRef={generatedRecipeSheetRef}
+          snapPoints={['85%', '95%']}
+          onClose={handleCloseGeneratedRecipeSheet}
+        >
+          <GeneratedRecipeSheet
+            recipe={generatedRecipe.recipe}
+            mode={generatedRecipe.mode}
+            preferences={generatedRecipe.preferences}
+            onClose={handleCloseGeneratedRecipeSheet}
+            onSave={async () => {
+              await loadGuides();
+              handleCloseGeneratedRecipeSheet();
+            }}
+          />
+        </BottomSheetComponent>
+      )}
 
     </SafeAreaView>
   );
