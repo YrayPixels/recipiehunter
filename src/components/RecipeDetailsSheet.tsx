@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Image, TouchableOpacity, ActivityIndicator, Linking, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Linking, ScrollView } from 'react-native';
 import { X, ExternalLink, Calendar } from 'react-native-feather';
 import { useRouter } from 'expo-router';
 import { Text } from './Text';
@@ -8,6 +8,7 @@ import BottomSheetLib from '@gorhom/bottom-sheet';
 import { AddToMealPlannerSheet } from './AddToMealPlannerSheet';
 import { useMealPlannerStore } from '../lib/stores/mealPlannerStore';
 import { format } from 'date-fns';
+import { OptimizedImage } from './OptimizedImage';
 
 interface RecipeDetails {
   id: string;
@@ -110,10 +111,11 @@ export const RecipeDetailsSheet: React.FC<RecipeDetailsSheetProps> = ({
                 </View>
 
                 {/* Recipe Image */}
-                <Image
-                  source={{ uri: selectedRecipe.imageUrl }}
-                  className="w-full h-48 rounded-3xl mb-4"
-                  resizeMode="cover"
+                <OptimizedImage
+                  source={selectedRecipe.imageUrl}
+                  containerClassName="w-full h-48 rounded-3xl mb-4 overflow-hidden"
+                  style={{ width: '100%', height: 192 }}
+                  contentFit="cover"
                 />
 
                 {/* Title and Meta */}

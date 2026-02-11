@@ -204,7 +204,7 @@ export default function ShoppingScreen() {
         item.id === itemId ? { ...item, checked: !checked } : item
       );
 
-      await shoppingAPI.update(listId, { items: updatedItems });
+      await shoppingAPI.update(listId, { items: updatedItems }, userId);
       await loadShoppingLists();
     } catch (error) {
       console.error('Error updating item:', error);
@@ -257,7 +257,7 @@ export default function ShoppingScreen() {
       if (!list) return;
 
       const updatedItems = list.items.filter(item => item.id !== itemId);
-      await shoppingAPI.update(listId, { items: updatedItems });
+      await shoppingAPI.update(listId, { items: updatedItems }, userId);
       await loadShoppingLists();
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -277,7 +277,7 @@ export default function ShoppingScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await shoppingAPI.delete(listId);
+              await shoppingAPI.delete(listId, userId);
               await loadShoppingLists();
             } catch (error) {
               console.error('Error deleting list:', error);

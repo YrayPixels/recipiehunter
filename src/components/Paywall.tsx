@@ -12,7 +12,6 @@ import { PurchasesPackage } from 'react-native-purchases';
 
 import { getRequiredTier, getUpgradeMessage } from '../lib/features';
 import { getAllPackages, getPackages, initializePurchases } from '../lib/subscription';
-import { useTheme } from '../lib/theme';
 import { SUBSCRIPTION_PLANS } from '../types/subscription';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
@@ -54,7 +53,6 @@ export const Paywall = React.forwardRef<PaywallRef, PaywallProps>(
     ref
   ) => {
     const router = useRouter();
-    const { effectiveTheme } = useTheme();
 
     const internalBottomSheetRef = useRef<BottomSheetLib | null>(null);
     const bottomSheetRef = externalBottomSheetRef || internalBottomSheetRef;
@@ -168,7 +166,7 @@ export const Paywall = React.forwardRef<PaywallRef, PaywallProps>(
 
     const monthlyPackage = getMonthlyPackage();
     const annualPackage = getAnnualPackage();
-    const primaryColor = effectiveTheme === 'dark' ? '#7a9a7a' : '#5a7a5a';
+    const primaryColor = '#5a7a5a';
 
     return (
       <BottomSheet
@@ -196,7 +194,7 @@ export const Paywall = React.forwardRef<PaywallRef, PaywallProps>(
               <X
                 width={18}
                 height={18}
-                color={effectiveTheme === 'dark' ? '#9ca3af' : '#5a7a5a'}
+                color="#5a7a5a"
               />
             </TouchableOpacity>
           </View>

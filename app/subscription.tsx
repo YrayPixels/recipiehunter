@@ -17,13 +17,11 @@ import {
   restorePurchases,
   restorePurchasesWithCustomerId,
 } from '../src/lib/subscription';
-import { useTheme } from '../src/lib/theme';
 import { SUBSCRIPTION_PLANS, SubscriptionPlan } from '../src/types/subscription';
 
 const SubscriptionPage: React.FC = () => {
   const router = useRouter();
   const { alert, AlertComponent } = useAlert();
-  const { effectiveTheme } = useTheme();
   const alertRef = useRef(alert);
 
   const [loading, setLoading] = useState(true);

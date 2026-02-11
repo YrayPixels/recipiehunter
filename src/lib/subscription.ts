@@ -26,6 +26,7 @@ const REVENUECAT_API_KEY_ANDROID =
 
 let isInitialized = false;
 let initializationPromise: Promise<void> | null = null;
+let currentUserId: string | undefined = undefined;
 
 /**
  * Check if running in Expo Go (which doesn't support native store features)
@@ -48,13 +49,22 @@ export const initializePurchases = async (
   userId?: string,
   enableDebugLogging: boolean = __DEV__
 ): Promise<void> => {
-  // If already initialized, return immediately
-  if (isInitialized) {
-    console.log("RevenueCat already initialized");
+  // If already initialized with the same userId, return immediately
+  if (isInitialized && currentUserId === userId) {
+    console.log("RevenueCat already initialized with same userId");
     return;
   }
 
-  // If initialization is in progress, wait for it
+  // If initialized with a different userId, we need to re-initialize
+  if (isInitialized && currentUserId !== userId) {
+    console.log("RevenueCat initialized with different userId, re-initializing...");
+    isInitialized = false;
+    currentUserId = undefined;
+    // Clear any pending initialization promise so we can start fresh
+    initializationPromise = null;
+  }
+
+  // If initialization is in progress with the same userId, wait for it
   if (initializationPromise) {
     return initializationPromise;
   }
@@ -102,6 +112,7 @@ export const initializePurchases = async (
       }
 
       // Configure RevenueCat - this must be called before any other RevenueCat methods
+      let alreadyConfigured = false;
       try {
         await Purchases.configure({ apiKey, appUserID: userId });
       } catch (configureError: any) {
@@ -118,23 +129,47 @@ export const initializePurchases = async (
           return;
         }
 
-        // If configure fails, don't set isInitialized to true
-        console.error("Failed to configure RevenueCat:", configureError);
-        isInitialized = false;
-        // In production, don't throw - just return
-        if (__DEV__) {
-          throw configureError;
+        // Check if RevenueCat is already configured (can happen if configure was called before)
+        if (
+          errorMessage.includes("already configured") ||
+          errorMessage.includes("already initialized") ||
+          errorMessage.includes("Purchases already configured")
+        ) {
+          console.log("RevenueCat already configured, proceeding with logIn");
+          alreadyConfigured = true;
+        } else {
+          // If configure fails for other reasons, don't set isInitialized to true
+          console.error("Failed to configure RevenueCat:", configureError);
+          isInitialized = false;
+          // In production, don't throw - just return
+          if (__DEV__) {
+            throw configureError;
+          }
+          return;
         }
-        return;
       }
 
-      // Now that configure succeeded, we can invalidate cache if needed
+      // Now that configure succeeded (or was already configured), we can invalidate cache if needed
       // Note: Only invalidate if we need to force refresh, otherwise let it use cache
       // await Purchases.invalidateCustomerInfoCache();
 
       // Set user ID if provided
+      // Note: If configure was called with appUserID, the user is already logged in
+      // If RevenueCat was already configured, we need to explicitly log in
       if (userId) {
-        await Purchases.logIn(userId);
+        if (alreadyConfigured) {
+          // RevenueCat is already configured, log in with the new userId
+          try {
+            await Purchases.logIn(userId);
+            console.log("RevenueCat logged in with userId:", userId);
+          } catch (logInError: any) {
+            console.warn("Failed to log in to RevenueCat:", logInError);
+            // Don't fail initialization if logIn fails - user might already be logged in
+            // But still mark as initialized so the app can continue
+          }
+        }
+        // If not already configured, the userId was passed to configure() above
+        // so the user is already logged in
       }
 
       // Set up customer info update listener
@@ -144,10 +179,12 @@ export const initializePurchases = async (
       });
 
       isInitialized = true;
+      currentUserId = userId;
       console.log("RevenueCat initialized successfully");
     } catch (error) {
       console.error("Error initializing RevenueCat:", error);
       isInitialized = false;
+      currentUserId = undefined;
       // Don't throw in production - allow app to continue without RevenueCat
       if (__DEV__) {
         throw error;
@@ -159,6 +196,38 @@ export const initializePurchases = async (
   })();
 
   return initializationPromise;
+};
+
+/**
+ * Reset RevenueCat state (call this on logout)
+ * This logs out the current user from RevenueCat and resets internal state
+ */
+export const resetPurchases = async (): Promise<void> => {
+  try {
+    if (isInitialized) {
+      try {
+        // Log out from RevenueCat
+        await Purchases.logOut();
+        console.log("RevenueCat logged out successfully");
+      } catch (error: any) {
+        // If logOut fails, it might be because RevenueCat isn't properly initialized
+        // or there's no user logged in - that's okay, just log it
+        console.warn("RevenueCat logOut failed (may not be logged in):", error);
+      }
+    }
+    
+    // Reset internal state
+    isInitialized = false;
+    currentUserId = undefined;
+    initializationPromise = null;
+    console.log("RevenueCat state reset");
+  } catch (error) {
+    console.error("Error resetting RevenueCat:", error);
+    // Even if reset fails, clear our internal state
+    isInitialized = false;
+    currentUserId = undefined;
+    initializationPromise = null;
+  }
 };
 
 // Get available offerings (subscription plans)

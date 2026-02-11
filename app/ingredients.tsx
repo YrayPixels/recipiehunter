@@ -2,13 +2,14 @@ import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FlatList, TouchableOpacity, View, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheetLib from '@gorhom/bottom-sheet';
 import { ChevronLeft, Search, X, Plus, Edit2, Trash2, Zap } from 'react-native-feather';
 import { useIngredientsStore, Ingredient } from '../src/lib/stores/ingredientsStore';
 import { Text } from '../src/components/Text';
 import { Input } from '../src/components/Input';
 import { useMealPlannerStore } from '../src/lib/stores/mealPlannerStore';
 import { AddIngredientSheet } from '../src/components/AddIngredientSheet';
+import { getUserId } from '../src/lib/userid';
 
 export default function IngredientsScreen() {
   const router = useRouter();
@@ -16,7 +17,8 @@ export default function IngredientsScreen() {
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(null);
   const [newIngredient, setNewIngredient] = useState({ name: '', quantity: '' });
   const [showExtractModal, setShowExtractModal] = useState(false);
-  const addIngredientSheetRef = useRef<BottomSheet>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const addIngredientSheetRef = useRef<BottomSheetLib | null>(null);
 
   const {
     ingredients,
@@ -30,8 +32,19 @@ export default function IngredientsScreen() {
   const { meals } = useMealPlannerStore();
 
   useEffect(() => {
-    loadIngredients();
+    loadUserId();
   }, []);
+
+  useEffect(() => {
+    if (userId) {
+      loadIngredients(userId);
+    }
+  }, [userId]);
+
+  const loadUserId = async () => {
+    const id = await getUserId();
+    setUserId(id);
+  };
 
   // Filter ingredients based on search
   const filteredIngredients = useMemo(() => {
@@ -62,13 +75,13 @@ export default function IngredientsScreen() {
   };
 
   const handleAddIngredient = async () => {
-    if (!newIngredient.name.trim()) return;
+    if (!newIngredient.name.trim() || !userId) return;
 
     try {
       await addIngredient({
         name: newIngredient.name.trim(),
         quantity: newIngredient.quantity.trim() || undefined,
-      });
+      }, userId);
       setNewIngredient({ name: '', quantity: '' });
       addIngredientSheetRef.current?.close();
     } catch (error) {
@@ -77,13 +90,13 @@ export default function IngredientsScreen() {
   };
 
   const handleUpdateIngredient = async () => {
-    if (!editingIngredient || !newIngredient.name.trim()) return;
+    if (!editingIngredient || !newIngredient.name.trim() || !userId) return;
 
     try {
       await updateIngredient(editingIngredient.id, {
         name: newIngredient.name.trim(),
         quantity: newIngredient.quantity.trim() || undefined,
-      });
+      }, userId);
       setEditingIngredient(null);
       setNewIngredient({ name: '', quantity: '' });
       addIngredientSheetRef.current?.close();
@@ -110,7 +123,9 @@ export default function IngredientsScreen() {
 
     try {
       for (const ingName of extracted) {
-        await addIngredient({ name: ingName });
+        if (userId) {
+          await addIngredient({ name: ingName }, userId);
+        }
       }
       setShowExtractModal(false);
     } catch (error) {
@@ -250,7 +265,7 @@ export default function IngredientsScreen() {
                   <Edit2 width={18} height={18} color="#313131" />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => removeIngredient(item.id)}
+                  onPress={() => userId && removeIngredient(item.id, userId)}
                   className="bg-red-100 rounded-lg p-2"
                   activeOpacity={0.7}
                 >

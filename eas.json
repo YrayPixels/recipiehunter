@@ -19,7 +19,12 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "test"
+      "channel": "test",
+      "env": {
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_IOS": "${EXPO_PUBLIC_REVENUECAT_API_KEY_IOS}",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID": "${EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID}",
+        "EXPO_PUBLIC_API_URL": "${EXPO_PUBLIC_API_URL}"
+      }
     },
     "production": {
       "android": {
@@ -32,7 +37,12 @@
         "buildConfiguration": "Release"
       },
       "developmentClient": false,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_IOS": "${EXPO_PUBLIC_REVENUECAT_API_KEY_IOS}",
+        "EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID": "${EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID}",
+        "EXPO_PUBLIC_API_URL": "${EXPO_PUBLIC_API_URL}"
+      }
     }
   }
 }

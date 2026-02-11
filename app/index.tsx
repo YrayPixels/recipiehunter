@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState, useRef } from 'react';
-import { ImageBackground, ScrollView, TouchableOpacity, View, ActivityIndicator, Image as RNImage } from 'react-native';
+import { ScrollView, TouchableOpacity, View, ActivityIndicator, Image as RNImage } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { guidesAPI, mealDBAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
@@ -10,6 +9,8 @@ import { Input } from '@/src/components/Input';
 import { Search } from 'react-native-feather';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
 import BottomSheetLib from '@gorhom/bottom-sheet';
+import { OptimizedImageBackground } from '../src/components/OptimizedImage';
+import { RecipeCardSkeleton } from '../src/components/SkeletonLoader';
 
 
 interface QuickStats {
@@ -38,8 +39,6 @@ interface RecipeDetails {
   tags?: string[];
 }
 
-const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
-
 export default function DashboardScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -54,18 +53,6 @@ export default function DashboardScreen() {
   const [hasSearched, setHasSearched] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const checkOnboardingStatus = async () => {
-    try {
-      const hasCompletedOnboarding = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
-      if (!hasCompletedOnboarding) {
-        // First launch - redirect to onboarding
-        router.replace('/onboarding');
-        return;
-      }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error);
-    }
-  };
 
   const loadStats = async () => {
     try {
@@ -75,6 +62,10 @@ export default function DashboardScreen() {
 
       // Try to get recent guides count from API (optional) - using safe version that never throws
       const userId = await getUserId();
+      if (!userId) {
+        // User not authenticated - skip API call
+        return;
+      }
       const data = await guidesAPI.getStatsSafe(userId);
       // Get the count of recipes from database (stats.recent or stats.totalRecipes)
       const recentGuides = data?.stats?.recent || data?.stats?.totalRecipes || 0;
@@ -318,7 +309,6 @@ export default function DashboardScreen() {
   };
 
   useEffect(() => {
-    checkOnboardingStatus();
     loadStats();
     loadPopularRecipes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -446,12 +436,11 @@ export default function DashboardScreen() {
                 </Text>
               </View>
               {loadingSearch ? (
-                <View className="py-8 items-center justify-center">
-                  <ActivityIndicator size="large" color="#313131" />
-                  <Text className="mt-4 space-regular" style={{ color: '#313131' }}>
-                    Searching recipes...
-                  </Text>
-                </View>
+                <ScrollView className='py-2 mb-6' horizontal showsHorizontalScrollIndicator={false}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <RecipeCardSkeleton key={i} />
+                  ))}
+                </ScrollView>
               ) : searchResults.length > 0 ? (
                 <ScrollView className='py-2 mb-6' horizontal showsHorizontalScrollIndicator={false}>
                   {searchResults.map((recipe) => (
@@ -461,9 +450,9 @@ export default function DashboardScreen() {
                       className="px-2 mb-4"
                       activeOpacity={0.8}
                     >
-                      <ImageBackground
-                        source={{ uri: recipe.imageUrl }}
-                        className="w-56 h-72 rounded-3xl overflow-hidden shadow"
+                      <OptimizedImageBackground
+                        source={recipe.imageUrl}
+                        containerClassName="w-56 h-72 rounded-3xl overflow-hidden shadow"
                         imageStyle={{ borderRadius: 24 }}
                       >
                         {/* Top glass panel */}
@@ -484,7 +473,7 @@ export default function DashboardScreen() {
                           <Text className="text-brand-green text-base mr-2">★</Text>
                           <Text className="text-white text-base space-semibold">{recipe.rating}</Text>
                         </View>
-                      </ImageBackground>
+                      </OptimizedImageBackground>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -508,12 +497,11 @@ export default function DashboardScreen() {
             </Text>
           </View>
           {loadingRecipes ? (
-            <View className="py-8 items-center justify-center">
-              <ActivityIndicator size="large" color="#313131" />
-              <Text className="mt-4 space-regular" style={{ color: '#313131' }}>
-                Loading recipes...
-              </Text>
-            </View>
+            <ScrollView className='' horizontal showsHorizontalScrollIndicator={false}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <RecipeCardSkeleton key={i} />
+              ))}
+            </ScrollView>
           ) : popularRecipes.length > 0 ? (
             <ScrollView className='' horizontal showsHorizontalScrollIndicator={false}>
               {popularRecipes.map((recipe) => (
@@ -523,9 +511,9 @@ export default function DashboardScreen() {
                   className="px-2 mb-4"
                   activeOpacity={0.8}
                 >
-                  <ImageBackground
-                    source={{ uri: recipe.imageUrl }}
-                    className="w-56 h-72 rounded-3xl overflow-hidden shadow"
+                  <OptimizedImageBackground
+                    source={recipe.imageUrl}
+                    containerClassName="w-56 h-72 rounded-3xl overflow-hidden shadow"
                     imageStyle={{ borderRadius: 24 }}
                   >
                     {/* Top glass panel */}
@@ -546,7 +534,7 @@ export default function DashboardScreen() {
                       <Text className="text-brand-green text-base mr-2">★</Text>
                       <Text className="text-white text-base space-semibold">{recipe.rating}</Text>
                     </View>
-                  </ImageBackground>
+                  </OptimizedImageBackground>
                 </TouchableOpacity>
               ))}
             </ScrollView>

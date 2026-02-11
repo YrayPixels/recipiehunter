@@ -6,7 +6,7 @@ import { cacheRecipe } from './recipeCache';
 
 // Get API URL from environment or use default
 // For production, update this to your recipehunter server URL
-const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3002';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://10.12.77.101:3002';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -54,7 +54,7 @@ export const videoAPI = {
    */
   processUpload: async (uri: string, userId: string, fileName?: string) => {
     const formData = new FormData();
-    
+
     // For React Native, we need to create a file object
     formData.append('video', {
       uri,
@@ -179,17 +179,17 @@ export const guidesAPI = {
    */
   create: async (guideData: any) => {
     // Increase timeout for AI generation requests (can take 60+ seconds)
-    const isAIGeneration = guideData.metadata?.generatedBy === 'quick-recipe' || 
-                          guideData.metadata?.generatedBy === 'from-ingredients';
+    const isAIGeneration = guideData.metadata?.generatedBy === 'quick-recipe' ||
+      guideData.metadata?.generatedBy === 'from-ingredients';
     const timeout = isAIGeneration ? 120000 : 30000; // 2 minutes for AI, 30s for regular
-    
+
     const response = await api.post('/api/guides', guideData, {
       timeout,
     });
     // Handle both 'recipe' and 'guide' in response
     const data = response.data;
     const guide = data.recipe || data.guide || data;
-    
+
     // Cache recipe if it's a recipe type
     if (guide && (guide.type === 'recipe' || guideData.type === 'recipe')) {
       try {
@@ -198,12 +198,12 @@ export const guidesAPI = {
         console.error('Failed to cache recipe:', error);
       }
     }
-    
+
     // Ensure backward compatibility
     if (data.recipe && !data.guide) {
       data.guide = data.recipe;
     }
-    
+
     return data;
   },
 
@@ -304,28 +304,51 @@ async function saveLocalShoppingLists(lists: ShoppingList[]): Promise<void> {
 }
 
 // Toggle this flag to switch between local-only and server-backed behaviour.
-const USE_LOCAL_SHOPPING = true;
+const USE_LOCAL_SHOPPING = false; // Changed to false to use backend
 
 export const shoppingAPI = {
   /**
    * Get all shopping lists for a user
    */
   getAll: async (userId: string) => {
-    if (USE_LOCAL_SHOPPING) {
+    try {
+      const response = await api.get(`/api/shopping/${userId}`, {
+        timeout: 10000,
+      });
+      // Save to local storage for offline access
+      if (response.data.success && response.data.lists) {
+        await saveLocalShoppingLists(response.data.lists);
+      }
+      return response.data;
+    } catch (error) {
+      console.log('Backend unavailable, loading from local storage');
       const allLists = await loadLocalShoppingLists();
       const lists = allLists.filter((l) => l.userId === userId);
-      return { lists };
+      return { success: true, lists };
     }
-
-    const response = await api.get(`/api/shopping/${userId}`);
-    return response.data;
   },
 
   /**
    * Create new shopping list
    */
   create: async (userId: string, name: string, items: any[] = [], guideIds: string[] = []) => {
-    if (USE_LOCAL_SHOPPING) {
+    try {
+      const response = await api.post('/api/shopping', {
+        userId,
+        name,
+        items,
+        guideIds,
+      }, {
+        timeout: 10000,
+      });
+      // Save to local storage
+      if (response.data.success && response.data.list) {
+        const allLists = await loadLocalShoppingLists();
+        await saveLocalShoppingLists([response.data.list, ...allLists]);
+      }
+      return response.data;
+    } catch (error) {
+      console.log('Backend unavailable, saving locally only');
       const allLists = await loadLocalShoppingLists();
       const newList: ShoppingList = {
         id: Date.now().toString(),
@@ -337,11 +360,8 @@ export const shoppingAPI = {
       };
       const updated = [newList, ...allLists];
       await saveLocalShoppingLists(updated);
-      return { list: newList };
+      return { success: true, list: newList };
     }
-
-    const response = await api.post('/api/shopping', { userId, name, items, guideIds });
-    return response.data;
   },
 
   /**
@@ -352,7 +372,7 @@ export const shoppingAPI = {
       // Fetch the guide/recipe to get its ingredients
       let items: ShoppingItem[] = [];
       let recipeTitle = 'Recipe';
-      
+
       try {
         const guideData = await guidesAPI.getById(guideId);
         if (guideData && guideData.ingredients && Array.isArray(guideData.ingredients)) {
@@ -369,21 +389,21 @@ export const shoppingAPI = {
                 checked: false,
               };
             }
-            
+
             // Pattern to match quantities at the start (e.g., "2 cups", "1/2 tsp", "500g")
             const quantityPattern = /^([\d\/\.]+\s*(cup|cups|tbsp|tsp|oz|lb|g|kg|ml|l|piece|pieces|pcs|pkg|pack|can|cans|bunch|bunches|clove|cloves|head|heads|stalk|stalks|slice|slices)?\s*)/i;
             const match = trimmed.match(quantityPattern);
-            
+
             let quantity: string | undefined;
             let name: string;
-            
+
             if (match) {
               quantity = match[1].trim();
               name = trimmed.substring(match[0].length).trim() || trimmed;
             } else {
               name = trimmed;
             }
-            
+
             return {
               id: `${guideId}-${index}-${Date.now()}`,
               name: name || ingredient,
@@ -395,7 +415,7 @@ export const shoppingAPI = {
       } catch (error) {
         console.warn('Failed to fetch guide ingredients, creating empty list:', error);
       }
-      
+
       const allLists = await loadLocalShoppingLists();
       const newList: ShoppingList = {
         id: Date.now().toString(),
@@ -423,15 +443,15 @@ export const shoppingAPI = {
       const MEAL_STORAGE_KEY = 'meal-planner-meals';
       let items: ShoppingItem[] = [];
       const guideIds: string[] = [];
-      
+
       try {
         const mealsData = await AsyncStorage.getItem(MEAL_STORAGE_KEY);
         const allMeals = mealsData ? JSON.parse(mealsData) : [];
-        
+
         // Calculate end date (7 days from start)
         const start = parseISO(startDate);
         const end = addDays(start, 6);
-        
+
         // Filter meals for the specified week
         const weekMeals = allMeals.filter((meal: any) => {
           try {
@@ -441,42 +461,42 @@ export const shoppingAPI = {
             return false;
           }
         });
-        
+
         if (weekMeals.length === 0) {
           console.log('No meals found for this week');
         }
-        
+
         // Map to track unique ingredients (deduplicate by name)
         const ingredientMap = new Map<string, { name: string; quantity?: string; recipes: Set<string> }>();
-        
+
         // Extract ingredients from each meal
         weekMeals.forEach((meal: any) => {
           if (meal.guideId) {
             guideIds.push(meal.guideId);
           }
-          
+
           if (meal.ingredients && Array.isArray(meal.ingredients)) {
             meal.ingredients.forEach((ingredient: string) => {
               const trimmed = ingredient.trim();
               if (!trimmed) return;
-              
+
               // Try to parse quantity and name from ingredient string
               const quantityPattern = /^([\d\/\.]+\s*(cup|cups|tbsp|tsp|oz|lb|g|kg|ml|l|piece|pieces|pcs|pkg|pack|can|cans|bunch|bunches|clove|cloves|head|heads|stalk|stalks|slice|slices)?\s*)/i;
               const match = trimmed.match(quantityPattern);
-              
+
               let quantity: string | undefined;
               let name: string;
-              
+
               if (match) {
                 quantity = match[1].trim();
                 name = trimmed.substring(match[0].length).trim() || trimmed;
               } else {
                 name = trimmed;
               }
-              
+
               // Use lowercase name as key for deduplication
               const key = name.toLowerCase();
-              
+
               if (ingredientMap.has(key)) {
                 // Ingredient already exists, add recipe to set
                 const existing = ingredientMap.get(key)!;
@@ -498,18 +518,18 @@ export const shoppingAPI = {
             });
           }
         });
-        
+
         // Convert map to shopping items array
         items = Array.from(ingredientMap.values()).map((info, index) => {
           let displayQuantity = info.quantity;
-          
+
           // If ingredient appears in multiple recipes, add that info
           if (info.recipes.size > 1) {
-            displayQuantity = displayQuantity 
-              ? `${displayQuantity} (${info.recipes.size} recipes)` 
+            displayQuantity = displayQuantity
+              ? `${displayQuantity} (${info.recipes.size} recipes)`
               : `Used in ${info.recipes.size} recipes`;
           }
-          
+
           return {
             id: `${Date.now()}-${index}`,
             name: info.name,
@@ -518,12 +538,12 @@ export const shoppingAPI = {
             category: 'Meal Plan',
           };
         });
-        
+
         console.log(`Created shopping list with ${items.length} items from ${weekMeals.length} meals`);
       } catch (error) {
         console.error('Error loading meal plan ingredients:', error);
       }
-      
+
       const allLists = await loadLocalShoppingLists();
       const newList: ShoppingList = {
         id: Date.now().toString(),
@@ -545,33 +565,68 @@ export const shoppingAPI = {
   /**
    * Update shopping list
    */
-  update: async (listId: string, updates: any) => {
-    if (USE_LOCAL_SHOPPING) {
+  update: async (listId: string, updates: any, userId?: string) => {
+    try {
+      const url = userId ? `/api/shopping/${listId}?userId=${userId}` : `/api/shopping/${listId}`;
+      const response = await api.patch(url, updates, {
+        timeout: 10000,
+      });
+      // Update local storage
+      if (response.data.success && response.data.list) {
+        const allLists = await loadLocalShoppingLists();
+        const listIndex = allLists.findIndex((l) => l.id === listId);
+        if (listIndex !== -1) {
+          allLists[listIndex] = response.data.list;
+        } else {
+          allLists.unshift(response.data.list);
+        }
+        await saveLocalShoppingLists(allLists);
+      }
+      return response.data;
+    } catch (error) {
+      console.log('Backend unavailable, updating locally only');
       const allLists = await loadLocalShoppingLists();
       const updatedLists = allLists.map((list) =>
         list.id === listId ? { ...list, ...updates } : list
       );
       await saveLocalShoppingLists(updatedLists);
       const updated = updatedLists.find((l) => l.id === listId) || null;
-      return { list: updated };
+      return { success: true, list: updated };
     }
-
-    const response = await api.patch(`/api/shopping/${listId}`, updates);
-    return response.data;
   },
 
   /**
    * Delete shopping list
    */
-  delete: async (listId: string) => {
-    if (USE_LOCAL_SHOPPING) {
+  delete: async (listId: string, userId?: string) => {
+    try {
+      const url = userId ? `/api/shopping/${listId}?userId=${userId}` : `/api/shopping/${listId}`;
+      const response = await api.delete(url, {
+        timeout: 10000,
+      });
+      // Remove from local storage
+      if (response.data.success) {
+        const allLists = await loadLocalShoppingLists();
+        const filtered = allLists.filter((list) => list.id !== listId);
+        await saveLocalShoppingLists(filtered);
+      }
+      return response.data;
+    } catch (error) {
+      console.log('Backend unavailable, deleting locally only');
       const allLists = await loadLocalShoppingLists();
       const filtered = allLists.filter((list) => list.id !== listId);
       await saveLocalShoppingLists(filtered);
       return { success: true };
     }
+  },
 
-    const response = await api.delete(`/api/shopping/${listId}`);
+  /**
+   * Get shopping list statistics
+   */
+  getStats: async (userId: string) => {
+    const response = await api.get(`/api/shopping/stats/${userId}`, {
+      timeout: 10000,
+    });
     return response.data;
   },
 
@@ -584,9 +639,9 @@ export const shoppingAPI = {
       const updatedLists = allLists.map((list) =>
         list.id === listId
           ? {
-              ...list,
-              guideIds: Array.from(new Set([...(list.guideIds || []), guideId])),
-            }
+            ...list,
+            guideIds: Array.from(new Set([...(list.guideIds || []), guideId])),
+          }
           : list
       );
       await saveLocalShoppingLists(updatedLists);
@@ -753,16 +808,16 @@ export const mealDBAPI = {
     // Extract instructions (split by newlines, carriage returns, or periods)
     const instructions = meal.strInstructions
       ? meal.strInstructions
-          .split(/\r\n|\n|\. /)
-          .map((step: string) => step.trim())
-          .filter((step: string) => step.length > 0)
-          .map((step: string) => {
-            // Ensure each step ends with a period if it doesn't already
-            if (step && !step.endsWith('.') && !step.endsWith('!') && !step.endsWith('?')) {
-              return step + '.';
-            }
-            return step;
-          })
+        .split(/\r\n|\n|\. /)
+        .map((step: string) => step.trim())
+        .filter((step: string) => step.length > 0)
+        .map((step: string) => {
+          // Ensure each step ends with a period if it doesn't already
+          if (step && !step.endsWith('.') && !step.endsWith('!') && !step.endsWith('?')) {
+            return step + '.';
+          }
+          return step;
+        })
       : [];
 
     // Estimate cooking time (TheMealDB doesn't provide this, so we'll use a default)
@@ -799,9 +854,75 @@ export const mealDBAPI = {
     // Get raw meal data from cache or API
     const meal = await mealDBAPI.getMealById(id);
     if (!meal) return null;
-    
+
     // Transform to app format
     return mealDBAPI.transformMeal(meal);
+  },
+};
+
+// Auth API
+export const authAPI = {
+  /**
+   * Sign up with email
+   */
+  signup: async (email: string, fullName?: string) => {
+    try {
+      console.log('🔐 Signup request to:', `${API_URL}/api/auth/signup`);
+      const response = await api.post('/api/auth/signup', {
+        email,
+        fullName,
+      }, {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Signup error:', error.response?.status, error.response?.data || error.message);
+      if (error.response?.status === 404) {
+        throw new Error(`Server not found. Please check if the backend server is running at ${API_URL}`);
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Login with email
+   */
+  login: async (email: string) => {
+    try {
+      console.log('🔐 Login request to:', `${API_URL}/api/auth/login`);
+      const response = await api.post('/api/auth/login', {
+        email,
+      }, {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Login error:', error.response?.status, error.response?.data || error.message);
+
+      // Check if it's a 404
+      if (error.response?.status === 404) {
+        // If response has the expected structure, it's a valid server response (user not found)
+        if (error.response?.data?.error === 'No account found with this email') {
+          // This is a valid 404 from the server (user not found) - rethrow as-is
+          throw error;
+        }
+        // Otherwise, it's likely the endpoint doesn't exist (server not running or wrong URL)
+        throw new Error(`Server not found. Please check if the backend server is running at ${API_URL}`);
+      }
+
+      // For other errors, rethrow as-is
+      throw error;
+    }
+  },
+
+  /**
+   * Get user by email
+   */
+  getUserByEmail: async (email: string) => {
+    const response = await api.get(`/api/auth/user/${encodeURIComponent(email)}`, {
+      timeout: 10000,
+    });
+    return response.data;
   },
 };
 
@@ -828,7 +949,7 @@ export const recipeAPI = {
     }, {
       timeout: 60000,
     });
-    
+
     // Cache generated recipes
     if (response.data.recipes && Array.isArray(response.data.recipes)) {
       for (const recipe of response.data.recipes) {
@@ -839,7 +960,7 @@ export const recipeAPI = {
         }
       }
     }
-    
+
     return response.data;
   },
 
@@ -847,7 +968,7 @@ export const recipeAPI = {
    * Generate recipes from ingredients (Premium only)
    */
   generateFromIngredients: async (
-    ingredients: string,
+    ingredients: string | string[],
     dietary: string[],
     mealType: string,
     servings: string,
@@ -855,8 +976,13 @@ export const recipeAPI = {
     skillLevel: string,
     userId: string
   ) => {
+    // Convert ingredients to array if it's a string
+    const ingredientsArray = Array.isArray(ingredients)
+      ? ingredients
+      : ingredients.split(',').map(i => i.trim()).filter(i => i.length > 0);
+
     const response = await api.post('/api/recipes/from-ingredients', {
-      ingredients,
+      ingredients: ingredientsArray,
       dietary,
       mealType,
       servings,
@@ -866,7 +992,7 @@ export const recipeAPI = {
     }, {
       timeout: 60000,
     });
-    
+
     // Cache generated recipes
     if (response.data.recipes && Array.isArray(response.data.recipes)) {
       for (const recipe of response.data.recipes) {
@@ -877,7 +1003,7 @@ export const recipeAPI = {
         }
       }
     }
-    
+
     return response.data;
   },
 
@@ -892,7 +1018,7 @@ export const recipeAPI = {
     }, {
       timeout: 10000,
     });
-    
+
     // Cache saved recipe
     const savedRecipe = response.data.recipe || response.data.guide || response.data;
     if (savedRecipe) {
@@ -902,13 +1028,13 @@ export const recipeAPI = {
         console.error('Failed to cache saved recipe:', error);
       }
     }
-    
+
     // Ensure backward compatibility
     const data = response.data;
     if (data.recipe && !data.guide) {
       data.guide = data.recipe;
     }
-    
+
     return data;
   },
 };
@@ -952,35 +1078,145 @@ export const activityAPI = {
   },
 };
 
-// Meal Planner API (if exists)
+// Meal Planner API
 export const mealPlannerAPI = {
   /**
-   * Get meal plan for a date range
+   * Get all meals for a user (optionally filtered by date range)
    */
-  getMealPlan: async (userId: string, startDate: string, endDate: string) => {
-    const response = await api.get(`/api/meal-planner/${userId}?startDate=${startDate}&endDate=${endDate}`);
-    return response.data;
-  },
+  getMeals: async (userId: string, startDate?: string, endDate?: string) => {
+    let url = `/api/meals/${userId}`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
 
-  /**
-   * Add guide to meal plan
-   */
-  addToMealPlan: async (userId: string, guideId: string, date: string, mealType: string) => {
-    const response = await api.post('/api/meal-planner', {
-      userId,
-      guideId,
-      date,
-      mealType,
+    const response = await api.get(url, {
+      timeout: 10000,
     });
     return response.data;
   },
 
   /**
-   * Remove guide from meal plan
+   * Add meal to meal plan
    */
-  removeFromMealPlan: async (userId: string, guideId: string, date: string, mealType: string) => {
-    const response = await api.delete(`/api/meal-planner/${userId}`, {
-      data: { guideId, date, mealType },
+  addMeal: async (userId: string, recipeId: string, date: string, mealType: string, servings?: number, notes?: string) => {
+    const response = await api.post('/api/meals', {
+      userId,
+      recipeId,
+      date,
+      mealType,
+      servings,
+      notes,
+    }, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete a meal
+   */
+  deleteMeal: async (mealId: string, userId: string) => {
+    const response = await api.delete(`/api/meals/${mealId}?userId=${userId}`, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get meal statistics for a user
+   */
+  getStats: async (userId: string) => {
+    const response = await api.get(`/api/meals/stats/${userId}`, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+};
+
+// Ingredients API
+export const ingredientsAPI = {
+  /**
+   * Get all ingredients for a user
+   */
+  getAll: async (userId: string, category?: string) => {
+    let url = `/api/ingredients/${userId}`;
+    if (category) url += `?category=${encodeURIComponent(category)}`;
+
+    const response = await api.get(url, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Create or update an ingredient
+   */
+  addIngredient: async (
+    userId: string,
+    name: string,
+    quantity?: string,
+    unit?: string,
+    category?: string,
+    expirationDate?: string,
+    location?: string,
+    notes?: string
+  ) => {
+    const response = await api.post('/api/ingredients', {
+      userId,
+      name,
+      quantity,
+      unit,
+      category,
+      expirationDate,
+      location,
+      notes,
+    }, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Update an ingredient
+   */
+  updateIngredient: async (
+    ingredientId: string,
+    updates: {
+      name?: string;
+      quantity?: string;
+      unit?: string;
+      category?: string;
+      expirationDate?: string;
+      location?: string;
+      notes?: string;
+    },
+    userId?: string
+  ) => {
+    const url = userId ? `/api/ingredients/${ingredientId}?userId=${userId}` : `/api/ingredients/${ingredientId}`;
+    const response = await api.patch(url, updates, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete an ingredient
+   */
+  deleteIngredient: async (ingredientId: string, userId?: string) => {
+    const url = userId ? `/api/ingredients/${ingredientId}?userId=${userId}` : `/api/ingredients/${ingredientId}`;
+    const response = await api.delete(url, {
+      timeout: 10000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get ingredient statistics
+   */
+  getStats: async (userId: string) => {
+    const response = await api.get(`/api/ingredients/stats/${userId}`, {
+      timeout: 10000,
     });
     return response.data;
   },

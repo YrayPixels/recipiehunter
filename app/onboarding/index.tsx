@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TouchableOpacity, View, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,6 +39,22 @@ export default function OnboardingScreen() {
   const [currentScreen, setCurrentScreen] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Check if onboarding is already completed on mount
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      try {
+        const hasCompletedOnboarding = await AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY);
+        if (hasCompletedOnboarding) {
+          // Onboarding already completed, redirect to signup
+          router.replace('/signup');
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      }
+    };
+    checkOnboardingStatus();
+  }, [router]);
+
   const handleNext = async () => {
     if (currentScreen < onboardingScreens.length - 1) {
       const nextScreen = currentScreen + 1;
@@ -50,8 +66,8 @@ export default function OnboardingScreen() {
     } else {
       // Mark onboarding as completed
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
-      // Navigate to main app
-      router.replace('/');
+      // Navigate to signup/login screen
+      router.replace('/signup');
     }
   };
 

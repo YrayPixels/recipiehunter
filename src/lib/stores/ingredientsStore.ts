@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ingredientsAPI } from '../api';
 
 export interface Ingredient {
   id: string;
@@ -14,10 +15,10 @@ export interface Ingredient {
 interface IngredientsState {
   ingredients: Ingredient[];
   isLoading: boolean;
-  loadIngredients: () => Promise<void>;
-  addIngredient: (ingredient: Omit<Ingredient, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateIngredient: (id: string, updates: Partial<Omit<Ingredient, 'id' | 'createdAt'>>) => Promise<void>;
-  removeIngredient: (id: string) => Promise<void>;
+  loadIngredients: (userId?: string) => Promise<void>;
+  addIngredient: (ingredient: Omit<Ingredient, 'id' | 'createdAt' | 'updatedAt'>, userId?: string) => Promise<void>;
+  updateIngredient: (id: string, updates: Partial<Omit<Ingredient, 'id' | 'createdAt'>>, userId?: string) => Promise<void>;
+  removeIngredient: (id: string, userId?: string) => Promise<void>;
   clearAllIngredients: () => Promise<void>;
 }
 
@@ -31,9 +32,37 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
   ingredients: [],
   isLoading: false,
 
-  loadIngredients: async () => {
+  loadIngredients: async (userId?: string) => {
     try {
       set({ isLoading: true });
+
+      // Try to load from backend first if userId is provided
+      if (userId) {
+        try {
+          const response = await ingredientsAPI.getAll(userId);
+          if (response.success && response.ingredients) {
+            // Transform backend ingredients to local format
+            const transformedIngredients: Ingredient[] = response.ingredients.map((ing: any) => ({
+              id: ing.id,
+              name: ing.name,
+              quantity: ing.quantity,
+              expirationDate: ing.expirationDate,
+              category: ing.category,
+              createdAt: ing.createdAt,
+              updatedAt: ing.updatedAt,
+            }));
+
+            // Save to local storage for offline access
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(transformedIngredients));
+            set({ ingredients: transformedIngredients, isLoading: false });
+            return;
+          }
+        } catch (error) {
+          console.log('Backend unavailable, loading from local storage');
+        }
+      }
+
+      // Fallback to local storage
       const data = await AsyncStorage.getItem(STORAGE_KEY);
       const ingredients = data ? JSON.parse(data) : [];
       set({ ingredients, isLoading: false });
@@ -43,8 +72,59 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
     }
   },
 
-  addIngredient: async (ingredientData) => {
+  addIngredient: async (ingredientData, userId?: string) => {
     try {
+      // Try to save to backend first if userId is provided
+      if (userId) {
+        try {
+          const response = await ingredientsAPI.addIngredient(
+            userId,
+            ingredientData.name,
+            ingredientData.quantity,
+            undefined, // unit
+            ingredientData.category,
+            ingredientData.expirationDate,
+            undefined, // location
+            undefined // notes
+          );
+
+          if (response.success && response.ingredient) {
+            // Transform backend ingredient to local format
+            const newIngredient: Ingredient = {
+              id: response.ingredient.id,
+              name: response.ingredient.name,
+              quantity: response.ingredient.quantity,
+              expirationDate: response.ingredient.expirationDate,
+              category: response.ingredient.category,
+              createdAt: response.ingredient.createdAt,
+              updatedAt: response.ingredient.updatedAt,
+            };
+
+            const currentIngredients = get().ingredients;
+            // Check if ingredient already exists (case-insensitive)
+            const existingIndex = currentIngredients.findIndex(
+              (i) => i.name.toLowerCase() === ingredientData.name.toLowerCase()
+            );
+
+            let updatedIngredients: Ingredient[];
+            if (existingIndex >= 0) {
+              updatedIngredients = [...currentIngredients];
+              updatedIngredients[existingIndex] = newIngredient;
+            } else {
+              updatedIngredients = [...currentIngredients, newIngredient];
+            }
+
+            // Save to local storage
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedIngredients));
+            set({ ingredients: updatedIngredients });
+            return;
+          }
+        } catch (error) {
+          console.log('Backend unavailable, saving locally only');
+        }
+      }
+
+      // Fallback to local storage only
       const now = new Date().toISOString();
       const newIngredient: Ingredient = {
         ...ingredientData,
@@ -81,8 +161,18 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
     }
   },
 
-  updateIngredient: async (id, updates) => {
+  updateIngredient: async (id, updates, userId?: string) => {
     try {
+      // Try to update in backend first if userId is provided
+      if (userId) {
+        try {
+          await ingredientsAPI.updateIngredient(id, updates, userId);
+        } catch (error) {
+          console.log('Backend unavailable, updating locally only');
+        }
+      }
+
+      // Update local storage
       const currentIngredients = get().ingredients;
       const updatedIngredients = currentIngredients.map((ingredient) =>
         ingredient.id === id
@@ -98,8 +188,18 @@ export const useIngredientsStore = create<IngredientsState>((set, get) => ({
     }
   },
 
-  removeIngredient: async (id: string) => {
+  removeIngredient: async (id: string, userId?: string) => {
     try {
+      // Try to delete from backend first if userId is provided
+      if (userId) {
+        try {
+          await ingredientsAPI.deleteIngredient(id, userId);
+        } catch (error) {
+          console.log('Backend unavailable, removing locally only');
+        }
+      }
+
+      // Remove from local storage
       const currentIngredients = get().ingredients;
       const updatedIngredients = currentIngredients.filter((i) => i.id !== id);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedIngredients));

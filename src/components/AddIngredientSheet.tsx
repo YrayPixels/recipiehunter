@@ -1,13 +1,14 @@
 import React from 'react';
 import { TouchableOpacity, View } from 'react-native';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheetLib from '@gorhom/bottom-sheet';
 import { X } from 'react-native-feather';
 import { Text } from './Text';
 import { Input } from './Input';
 import { Ingredient } from '../lib/stores/ingredientsStore';
+import { BottomSheet } from './BottomSheet';
 
 interface AddIngredientSheetProps {
-  bottomSheetRef: React.RefObject<BottomSheet>;
+  bottomSheetRef: React.RefObject<BottomSheetLib | null>;
   editingIngredient: Ingredient | null;
   newIngredient: { name: string; quantity: string };
   onIngredientChange: (ingredient: { name: string; quantity: string }) => void;
@@ -25,10 +26,8 @@ export const AddIngredientSheet: React.FC<AddIngredientSheetProps> = ({
 }) => {
   return (
     <BottomSheet
-      ref={bottomSheetRef}
-      index={-1}
+      bottomSheetRef={bottomSheetRef}
       snapPoints={['50%']}
-      enablePanDownToClose
       onClose={onClose}
       backgroundStyle={{ backgroundColor: '#F6FBDE' }}
       handleIndicatorStyle={{ backgroundColor: '#313131' }}

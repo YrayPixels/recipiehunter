@@ -11,7 +11,6 @@ import { Text } from '../src/components/Text';
 import { guidesAPI } from '../src/lib/api';
 import { getSettings, saveSettings, UserSettings } from '../src/lib/storage';
 import { getUserId } from '../src/lib/userid';
-import { Theme, useTheme } from '../src/lib/theme';
 
 const CUISINES = [
   { value: 'nigerian', label: 'Nigerian 🇳🇬' },
@@ -62,7 +61,6 @@ interface FoodPreferences {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ guides: 0, lists: 0, reminders: 0 });
@@ -346,42 +344,6 @@ export default function SettingsScreen() {
                       Save Preferences
                     </Text>
                   </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Appearance */}
-            <View className="mb-6">
-              <Text className="text-xl space-semibold mb-4" style={{ color: '#313131' }}>
-                Appearance
-              </Text>
-              <View className="bg-white rounded-3xl p-4">
-                <View className="gap-3">
-                  <Text className="text-sm space-regular mb-2" style={{ color: '#313131' }}>
-                    Choose your preferred theme
-                  </Text>
-                  <View className="flex-row gap-2">
-                    {(['light', 'dark', 'auto'] as Theme[]).map((themeOption) => (
-                      <TouchableOpacity
-                        key={themeOption}
-                        onPress={() => setTheme(themeOption)}
-                        className={`flex-1 px-4 py-3 rounded-3xl border ${theme === themeOption
-                          ? 'bg-brand-green border-brand-green'
-                          : 'bg-brand-cream border-brand-green'
-                          }`}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          className={`text-sm text-center space-medium capitalize ${theme === themeOption
-                            ? 'text-[#313131]'
-                            : 'text-[#313131]'
-                            }`}
-                        >
-                          {themeOption}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
                 </View>
               </View>
             </View>

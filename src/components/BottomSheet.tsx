@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import BottomSheetLib, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useTheme } from '../lib/theme';
 
 interface BottomSheetProps {
   bottomSheetRef: React.RefObject<BottomSheetLib | null>;
@@ -22,7 +21,6 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   backgroundStyle,
   handleIndicatorStyle,
 }) => {
-  const { effectiveTheme } = useTheme();
   const memoizedSnapPoints = useMemo(() => snapPoints, [snapPoints]);
 
   const handleSheetChanges = useCallback(
@@ -47,12 +45,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   );
 
   const defaultBackgroundStyle = {
-    backgroundColor: effectiveTheme === 'dark' ? 'hsl(220 20% 10%)' : 'hsl(40 30% 97%)',
+    backgroundColor: 'hsl(40 30% 97%)',
     ...backgroundStyle,
   };
 
   const defaultHandleIndicatorStyle = {
-    backgroundColor: effectiveTheme === 'dark' ? 'hsl(35 20% 25%)' : 'hsl(35 20% 88%)',
+    backgroundColor: 'hsl(35 20% 88%)',
     ...handleIndicatorStyle,
   };
 

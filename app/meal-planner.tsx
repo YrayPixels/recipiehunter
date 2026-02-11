@@ -12,6 +12,7 @@ import { useMealPlannerStore } from '../src/lib/stores/mealPlannerStore';
 import { GuideSelectionSheet } from '../src/components/GuideSelectionSheet';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
 import { getAllCachedRecipes } from '../src/lib/recipeCache';
+import { useFocusEffect } from '@react-navigation/native';
 
 const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', icon: '☀️', color: '#FFE5B4' },
@@ -37,8 +38,27 @@ export default function MealPlannerScreen() {
 
   useEffect(() => {
     loadUserId();
+    // Load meals immediately (will use AsyncStorage if userId not available yet)
     loadMeals();
   }, []);
+
+  useEffect(() => {
+    if (userId) {
+      loadMeals(userId);
+    }
+  }, [userId]);
+
+  // Reload meals when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        loadMeals(userId);
+      } else {
+        // Still load from AsyncStorage even if userId not available
+        loadMeals();
+      }
+    }, [userId, loadMeals])
+  );
 
   useEffect(() => {
     if (userId) {
@@ -180,11 +200,11 @@ export default function MealPlannerScreen() {
   };
 
   const handleSelectGuide = async (guide: any) => {
-    if (!selectedSlot) return;
+    if (!selectedSlot || !userId) return;
 
     try {
       const dateStr = format(selectedSlot.date, 'yyyy-MM-dd');
-      // Store full recipe data locally (no server request needed)
+      // Store full recipe data and sync with backend
       await addMeal({
         date: dateStr,
         mealType: selectedSlot.mealType as 'breakfast' | 'lunch' | 'dinner' | 'snack',
@@ -201,7 +221,7 @@ export default function MealPlannerScreen() {
         youtube: guide.youtube || undefined,
         tips: guide.tips || undefined,
         summary: guide.summary || undefined,
-      });
+      }, userId);
       bottomSheetRef.current?.close();
       setSelectedSlot(null);
     } catch (error) {

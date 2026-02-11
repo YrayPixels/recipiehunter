@@ -1,7 +1,6 @@
 import React from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { AlertTriangle, CheckCircle, Info, X } from 'react-native-feather';
-import { useTheme } from '../lib/theme';
 import { cn } from '../lib/utils';
 import { Button } from './Button';
 
@@ -66,10 +65,9 @@ export const Alert: React.FC<AlertProps> = ({
   buttons,
   onClose,
 }) => {
-  const { effectiveTheme } = useTheme();
   const config = getAlertConfig(type);
   const Icon = config.icon;
-  const closeIconColor = effectiveTheme === 'dark' ? '#d1d5db' : '#5a7a5a';
+  const closeIconColor = '#5a7a5a';
 
   // Default buttons if none provided
   const defaultButtons: AlertButton[] = buttons || [

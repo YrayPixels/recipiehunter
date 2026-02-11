@@ -5,7 +5,6 @@ import { X } from 'react-native-feather';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
 import { Input } from './Input';
-import { useTheme } from '../lib/theme';
 import { cn } from '../lib/utils';
 
 export interface TimePickerRef {
@@ -28,7 +27,6 @@ export const TimePicker = React.forwardRef<TimePickerRef, TimePickerProps>(({
   onClose,
   title = 'Select Time',
 }, ref) => {
-  const { effectiveTheme } = useTheme();
   const [hours, setHours] = useState(() => {
     const [h] = currentTime.split(':');
     return h || '08';
@@ -125,7 +123,7 @@ export const TimePicker = React.forwardRef<TimePickerRef, TimePickerProps>(({
             <X
               width={20}
               height={20}
-              color={effectiveTheme === 'dark' ? '#9ca3af' : '#6b7280'}
+              color="#6b7280"
             />
           </TouchableOpacity>
         </View>
@@ -145,7 +143,7 @@ export const TimePicker = React.forwardRef<TimePickerRef, TimePickerProps>(({
                 </TouchableOpacity>
                 <View className={cn(
                   "w-16 h-16 border-2 border-primary dark:border-primary-dark rounded-lg items-center justify-center mb-2",
-                  effectiveTheme === 'dark' ? 'bg-primary/20' : 'bg-sage-light'
+                  'bg-sage-light'
                 )}>
                   <Text className="text-3xl  text-foreground dark:text-foreground-dark">{hours}</Text>
                 </View>
@@ -172,7 +170,7 @@ export const TimePicker = React.forwardRef<TimePickerRef, TimePickerProps>(({
                 </TouchableOpacity>
                 <View className={cn(
                   "w-16 h-16 border-2 border-primary dark:border-primary-dark rounded-lg items-center justify-center mb-2",
-                  effectiveTheme === 'dark' ? 'bg-primary/20' : 'bg-sage-light'
+                  'bg-sage-light'
                 )}>
                   <Text className="text-3xl  text-foreground dark:text-foreground-dark">{minutes}</Text>
                 </View>

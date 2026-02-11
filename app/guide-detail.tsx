@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { guidesAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
+import { OptimizedImage } from '../src/components/OptimizedImage';
 
 interface Guide {
   id: string;
@@ -117,12 +118,13 @@ export default function GuideDetailScreen() {
           </View>
 
           {/* Hero Image */}
-          <View className="w-full h-64 mb-4">
+          <View className="w-full h-64 mb-4 overflow-hidden">
             {guide.image_url ? (
-              <Image
-                source={{ uri: guide.image_url }}
-                className="w-full h-full"
-                resizeMode="cover"
+              <OptimizedImage
+                source={guide.image_url}
+                containerClassName="w-full h-full"
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
               />
             ) : (
               <View className="w-full h-full items-center justify-center" style={{ backgroundColor: '#F6FBDE' }}>

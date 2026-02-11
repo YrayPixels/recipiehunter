@@ -22,6 +22,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import "../global.css";
 import { AuthGuard } from "../src/components/AuthGuard";
+import { AuthCheck } from "../src/components/AuthCheck";
 import { BottomNavigation } from "../src/components/BottomNavigation";
 import { ErrorBoundary } from "../src/components/ErrorBoundary";
 import { scheduleAllReminders } from "../src/lib/notifications";
@@ -139,8 +140,11 @@ export default function RootLayout() {
     // Initialize RevenueCat on app startup
     const initRevenueCat = async () => {
       try {
-
         const userId = await getUserId();
+        if (!userId) {
+          // User not authenticated yet - skip RevenueCat initialization
+          return;
+        }
 
         await initializePurchases(userId);
 
@@ -167,7 +171,28 @@ export default function RootLayout() {
       }
     };
 
+    // Initial check
     initRevenueCat();
+
+    // Listen for app state changes to re-initialize when app comes to foreground
+    // This handles cases where user logs in while app is in background
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active') {
+        // App came to foreground, check if user is logged in and initialize RevenueCat
+        const userId = await getUserId();
+        if (userId) {
+          try {
+            await initializePurchases(userId);
+          } catch (error) {
+            console.warn("RevenueCat initialization on app active failed:", error);
+          }
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -190,15 +215,17 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <ThemeProvider>
-            <AuthGuard>
-              <LayoutWithBottomNav>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                  }}
-                />
-              </LayoutWithBottomNav>
-            </AuthGuard>
+            <AuthCheck>
+              <AuthGuard>
+                <LayoutWithBottomNav>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                    }}
+                  />
+                </LayoutWithBottomNav>
+              </AuthGuard>
+            </AuthCheck>
           </ThemeProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
@@ -209,8 +236,8 @@ export default function RootLayout() {
 function LayoutWithBottomNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Hide bottom navigation on onboarding screens
-  const hideBottomNav = pathname?.startsWith('/onboarding');
+  // Hide bottom navigation on onboarding and signup screens
+  const hideBottomNav = pathname?.startsWith('/onboarding') || pathname?.startsWith('/signup');
 
   return (
     <View className="flex-1">

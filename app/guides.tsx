@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, RefreshControl, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BottomSheet from '@gorhom/bottom-sheet';
-import { useLocalSearchParams } from 'expo-router';
-import { guidesAPI, mealDBAPI } from '../src/lib/api';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { guidesAPI, mealDBAPI, videoAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import { Text } from '../src/components/Text';
 import { BottomSheet as BottomSheetComponent } from '../src/components/BottomSheet';
@@ -11,6 +11,8 @@ import { Input } from '../src/components/Input';
 import { AddGuide } from './add-guide';
 import { getAllCachedRecipes } from '../src/lib/recipeCache';
 import { RecipeDetailsSheet } from '../src/components/RecipeDetailsSheet';
+import { OptimizedImage } from '../src/components/OptimizedImage';
+import { RecipeListItemSkeleton } from '../src/components/SkeletonLoader';
 
 interface Guide {
   id: string;
@@ -42,7 +44,16 @@ interface RecipeDetails {
 
 
 
+interface ProcessingJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  step?: string;
+  currentStep?: string;
+}
+
 export default function GuidesScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams<{ category?: string }>();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [filteredGuides, setFilteredGuides] = useState<Guide[]>([]);
@@ -55,9 +66,18 @@ export default function GuidesScreen() {
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetails | null>(null);
   const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeJobs, setActiveJobs] = useState<ProcessingJob[]>([]);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const activeJobsRef = useRef<ProcessingJob[]>([]);
 
   useEffect(() => {
     loadUserId();
+    return () => {
+      // Cleanup polling on unmount
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
   }, []);
 
   // Update selected category when route params change
@@ -66,6 +86,13 @@ export default function GuidesScreen() {
       setSelectedCategory(params.category);
     }
   }, [params.category]);
+
+  // Load active jobs when userId is available
+  useEffect(() => {
+    if (userId) {
+      loadActiveJobs();
+    }
+  }, [userId]);
 
   const applySearch = () => {
     if (!searchQuery.trim()) {
@@ -98,8 +125,95 @@ export default function GuidesScreen() {
 
   const loadUserId = async () => {
     const id = await getUserId();
+    if (!id) {
+      // User not authenticated - AuthCheck should handle redirect
+      return;
+    }
     setUserId(id);
   };
+
+  const loadActiveJobs = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await videoAPI.getUserJobs(userId, 50, 0);
+      if (response.success && response.jobs) {
+        // Filter only pending and processing jobs
+        const active = response.jobs.filter(
+          (job: ProcessingJob) => job.status === 'pending' || job.status === 'processing'
+        );
+        setActiveJobs(active);
+        activeJobsRef.current = active;
+      }
+    } catch (error) {
+      console.error('Error loading active jobs:', error);
+      // Silently fail - don't show error to user
+    }
+  };
+
+  // Start/stop polling when activeJobs changes
+  useEffect(() => {
+    // Clear existing interval
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+
+    // Only start polling if there are active jobs and userId
+    if (activeJobs.length === 0 || !userId) {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      if (!userId) return;
+
+      try {
+        // Use ref to get current jobs to avoid stale closure
+        const currentJobs = activeJobsRef.current;
+        if (currentJobs.length === 0) {
+          clearInterval(interval);
+          setPollingInterval(null);
+          return;
+        }
+
+        // Update each active job's status
+        const updatedJobs = await Promise.all(
+          currentJobs.map(async (job) => {
+            try {
+              const status = await videoAPI.getJobStatus(job.id, userId);
+              return {
+                ...job,
+                ...status,
+                step: status.step || status.currentStep,
+              };
+            } catch {
+              return job; // Keep old status on error
+            }
+          })
+        );
+
+        // Filter out completed/failed jobs
+        const stillActive = updatedJobs.filter(
+          (job) => job.status === 'pending' || job.status === 'processing'
+        );
+
+        setActiveJobs(stillActive);
+        activeJobsRef.current = stillActive;
+      } catch (error) {
+        console.error('Error polling job status:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    setPollingInterval(interval);
+
+    // Cleanup function
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeJobs.length, userId]);
 
   const loadGuides = async () => {
     if (!userId) return;
@@ -173,7 +287,7 @@ export default function GuidesScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadGuides();
+    await Promise.all([loadGuides(), loadActiveJobs()]);
     setRefreshing(false);
   };
 
@@ -257,10 +371,11 @@ export default function GuidesScreen() {
           {/* Recipe Image - Left Side (60%) */}
           <View style={{ position: 'relative' }} className='rounded-[20px]  h-[150px] overflow-hidden '>
             {item.image_url ? (
-              <Image
-                source={{ uri: item.image_url }}
+              <OptimizedImage
+                source={item.image_url}
+                containerClassName="w-full h-full"
                 style={{ width: '100%', height: '100%' }}
-                resizeMode="cover"
+                contentFit="cover"
               />
             ) : (
               <View
@@ -309,9 +424,23 @@ export default function GuidesScreen() {
 
   if (loading && guides.length === 0) {
     return (
-      <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#D4E95A" />
+      <SafeAreaView className="flex-1" style={{ backgroundColor: '#F6FBDE' }} edges={['top']}>
+        <View className="flex-1 px-4 pt-4">
+          <View className="pb-2">
+            <View className="px-4 mb-3">
+              <View className="h-12 bg-gray-200 rounded-3xl mb-3" />
+            </View>
+            <View className="flex-row items-center justify-between px-4 mb-3">
+              <View className="h-6 w-32 bg-gray-200 rounded" />
+              <View className="h-10 w-20 bg-gray-200 rounded-3xl" />
+            </View>
+          </View>
+          <FlatList
+            data={[1, 2, 3, 4, 5, 6]}
+            renderItem={() => <RecipeListItemSkeleton />}
+            keyExtractor={(item) => item.toString()}
+            contentContainerStyle={{ paddingBottom: 20 }}
+          />
         </View>
       </SafeAreaView>
     );
@@ -374,6 +503,59 @@ export default function GuidesScreen() {
             />
           </View>
 
+          {/* Processing Jobs Banner */}
+          {activeJobs.length > 0 && (
+            <TouchableOpacity
+              onPress={() => router.push('/jobs')}
+              className="mx-4 mt-3 mb-2 bg-white rounded-3xl p-4"
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <View className="flex-row items-center mb-2">
+                    <ActivityIndicator size="small" color="#FF9800" style={{ marginRight: 8 }} />
+                    <Text className="text-base font-semibold" style={{ color: '#313131' }}>
+                      {activeJobs.length} {activeJobs.length === 1 ? 'recipe' : 'recipes'} generating
+                    </Text>
+                  </View>
+                  
+                  {/* Progress for first job */}
+                  {activeJobs[0] && (
+                    <View>
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-xs" style={{ color: '#666' }} numberOfLines={1}>
+                          {activeJobs[0].step || activeJobs[0].currentStep || 'Processing...'}
+                        </Text>
+                        <Text className="text-xs font-medium" style={{ color: '#666' }}>
+                          {activeJobs[0].progress}%
+                        </Text>
+                      </View>
+                      <View className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <View
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${activeJobs[0].progress}%`,
+                            backgroundColor: '#FF9800',
+                          }}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+                <View className="ml-3">
+                  <Text className="text-lg">→</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+
           {/* Recipe Count and Action Buttons */}
           <View className="flex-row items-center justify-between px-4 mt-3">
             <Text className="text-xl space-bold" style={{ color: '#1F2937' }}>
@@ -401,6 +583,15 @@ export default function GuidesScreen() {
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListFooterComponent={
+              loading && filteredGuides.length > 0 ? (
+                <View className="py-4">
+                  {[1, 2].map((i) => (
+                    <RecipeListItemSkeleton key={i} />
+                  ))}
+                </View>
+              ) : null
             }
             ListEmptyComponent={
               <View className="items-center justify-center">

@@ -8,12 +8,15 @@ import {
   ShoppingBag,
   Calendar,
   Star,
+  LogOut,
+  Clock,
 } from 'react-native-feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../src/components/Text';
-import { guidesAPI } from '../src/lib/api';
+import { guidesAPI, mealPlannerAPI, shoppingAPI, ingredientsAPI } from '../src/lib/api';
 import { getSettings, UserSettings } from '../src/lib/storage';
-import { getUserId } from '../src/lib/userid';
+import { getUserId, getUserEmail, clearUserAuth } from '../src/lib/userid';
+import { resetPurchases } from '../src/lib/subscription';
 
 interface ProfileStats {
   guides: number;
@@ -33,6 +36,7 @@ export default function ProfileScreen() {
     reminders: 0,
   });
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -42,6 +46,9 @@ export default function ProfileScreen() {
     try {
       const id = await getUserId();
       setUserId(id);
+
+      const email = await getUserEmail();
+      setUserEmail(email);
 
       const loadedSettings = await getSettings();
       setSettings(loadedSettings);
@@ -57,11 +64,38 @@ export default function ProfileScreen() {
         } catch {
         }
 
+        // Get meal plan count
+        let mealPlansCount = 0;
+        try {
+          const mealStats = await mealPlannerAPI.getStats(id);
+          mealPlansCount = mealStats?.stats?.total || 0;
+        } catch {
+          // If meal stats fail, continue with 0
+        }
+
+        // Get shopping lists count
+        let shoppingListsCount = 0;
+        try {
+          const shoppingStats = await shoppingAPI.getStats(id);
+          shoppingListsCount = shoppingStats?.stats?.total || 0;
+        } catch {
+          // If shopping stats fail, continue with 0
+        }
+
+        // Get ingredients count
+        let ingredientsCount = 0;
+        try {
+          const ingredientsStats = await ingredientsAPI.getStats(id);
+          ingredientsCount = ingredientsStats?.stats?.total || 0;
+        } catch {
+          // If ingredients stats fail, continue with 0
+        }
+
         setStats({
           guides: statsData?.total || 0,
           recipes: totalRecipes || 0,
-          mealPlans: 0, // TODO: Add meal planner API
-          reminders: 0, // TODO: Add reminders API
+          mealPlans: mealPlansCount,
+          reminders: ingredientsCount, // Using ingredients count for now
         });
       }
     } catch (error) {
@@ -108,7 +142,7 @@ export default function ProfileScreen() {
               Welcome Back!
             </Text>
             <Text className="text-sm space-regular mb-4" style={{ color: '#313131' }}>
-              {userId?.substring(0, 12)}...
+              {userEmail || userId?.substring(0, 12) + '...'}
             </Text>
 
             {/* Subscription Badge */}
@@ -173,6 +207,19 @@ export default function ProfileScreen() {
                   <ChevronRight width={18} height={18} color="#313131" />
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                  onPress={() => router.push('/jobs')}
+                  className="flex-row items-center justify-between py-3 px-2 rounded-3xl bg-brand-cream"
+                  activeOpacity={0.7}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <Clock width={20} height={20} color="#313131" />
+                    <Text className="space-medium" style={{ color: '#313131' }}>
+                      Processing Jobs
+                    </Text>
+                  </View>
+                  <ChevronRight width={18} height={18} color="#313131" />
+                </TouchableOpacity>
 
               </View>
             </View>
@@ -187,6 +234,14 @@ export default function ProfileScreen() {
             </Text>
             <View className="bg-white rounded-3xl p-4 ">
               <View className="gap-3">
+                {userEmail && (
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-sm space-regular" style={{ color: '#313131' }}>Email</Text>
+                    <Text className="text-sm space-regular" numberOfLines={1} style={{ color: '#313131' }}>
+                      {userEmail}
+                    </Text>
+                  </View>
+                )}
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm space-regular" style={{ color: '#313131' }}>User ID</Text>
                   <Text className="text-sm space-regular font-mono" numberOfLines={1} style={{ color: '#313131' }}>
@@ -203,6 +258,40 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
+          </View>
+
+          {/* Logout Section */}
+          <View className="mb-6">
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  // Reset RevenueCat state before clearing auth
+                  await resetPurchases();
+                  // Clear user auth data
+                  await clearUserAuth();
+                  // Navigate to signup
+                  router.replace('/signup');
+                } catch (error) {
+                  console.error('Error logging out:', error);
+                  // Even if there's an error, try to clear auth and navigate
+                  try {
+                    await clearUserAuth();
+                    router.replace('/signup');
+                  } catch (clearError) {
+                    console.error('Error clearing auth after logout error:', clearError);
+                  }
+                }
+              }}
+              className="bg-red-50 rounded-3xl p-4"
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center justify-center gap-3">
+                <LogOut width={20} height={20} color="#DC2626" />
+                <Text className="text-base space-semibold" style={{ color: '#DC2626' }}>
+                  Logout
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Navigation Links */}

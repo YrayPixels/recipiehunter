@@ -1,11 +1,13 @@
 import * as DocumentPicker from 'expo-document-picker';
-import React, { useState, useRef } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, Image, Linking } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View, Linking } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { guidesAPI, videoAPI, recipeAPI } from '../src/lib/api';
 import { getUserId } from '../src/lib/userid';
 import BottomSheetLib from '@gorhom/bottom-sheet';
 import { BottomSheet } from '../src/components/BottomSheet';
 import { X, ExternalLink } from 'react-native-feather';
+import { OptimizedImage } from '../src/components/OptimizedImage';
 
 type Mode = 'url' | 'upload' | 'ai-recipe' | 'ingredients';
 
@@ -15,13 +17,25 @@ interface AddGuideProps {
 }
 
 export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
-  const [mode, setMode] = useState<Mode>('url');
+  const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string; ingredients?: string }>();
+  const [mode, setMode] = useState<Mode>((params.mode as Mode) || 'url');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Set ingredients from params if provided
+  useEffect(() => {
+    if (params.ingredients) {
+      setIngredients(params.ingredients);
+      if (params.mode === 'ingredients') {
+        setMode('ingredients');
+      }
+    }
+  }, [params.ingredients, params.mode]);
 
   // AI Recipe Generator states
   const [mealType, setMealType] = useState('dinner');
@@ -32,6 +46,9 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
   // Ingredients states
   const [ingredients, setIngredients] = useState('');
+  const [dietary, setDietary] = useState<string[]>([]);
+  const [cookingTime, setCookingTime] = useState('30-60');
+  const [skillLevel, setSkillLevel] = useState('intermediate');
 
   // Generated recipe state
   const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
@@ -65,13 +82,36 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
           setProcessing(false);
           setProgress(100);
           setCurrentStep('Done!');
-          Alert.alert('Success', 'Guide created successfully!', [
+          
+          // Check if recipe is available in the status
+          const recipe = status.job?.recipe || status.recipe || status.guide;
+          
+          Alert.alert('Success', 'Recipe created successfully!', [
             {
-              text: 'OK', onPress: () => {
+              text: 'View Recipe',
+              onPress: () => {
                 onClose();
+                // Navigate to guides screen - the recipe should be there
+                // The user can also check the jobs screen to see all their processing jobs
                 onSuccess?.();
               }
             },
+            {
+              text: 'View Jobs',
+              onPress: () => {
+                onClose();
+                // Navigate to jobs screen to see the completed job
+                router.push('/jobs');
+              }
+            },
+            {
+              text: 'OK',
+              style: 'cancel',
+              onPress: () => {
+                onClose();
+                onSuccess?.();
+              }
+            }
           ]);
         } else if (status.status === 'failed') {
           clearInterval(interval);
@@ -194,29 +234,46 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
         }
 
         setCurrentStep('Generating recipes from ingredients...');
-        // Similar to AI recipe, but with ingredients
-        await guidesAPI.create({
-          userId,
-          type: 'recipe',
-          category: mealType,
-          title: 'AI Generated Recipe',
-          metadata: {
-            generatedBy: 'from-ingredients',
-            userIngredients: ingredients.split(',').map(i => i.trim()),
-          },
-        });
+        setProgress(30);
 
-        setProcessing(false);
-        setProgress(100);
-        setCurrentStep('Done!');
-        Alert.alert('Success', 'Recipes generated successfully!', [
-          {
-            text: 'OK', onPress: () => {
-              onClose();
-              onSuccess?.();
-            }
-          },
-        ]);
+        // Parse ingredients into array
+        const ingredientsArray = ingredients.split(',').map(i => i.trim()).filter(i => i.length > 0);
+
+        if (ingredientsArray.length === 0) {
+          setError('Please enter at least one ingredient');
+          setProcessing(false);
+          return;
+        }
+
+        // Call the generateFromIngredients API with array
+        const result = await recipeAPI.generateFromIngredients(
+          ingredientsArray, // Send as array
+          dietary,
+          mealType,
+          servings,
+          cookingTime,
+          skillLevel,
+          userId
+        );
+
+        setProgress(80);
+
+        if (result.success && result.recipes && result.recipes.length > 0) {
+          // Store the first generated recipe (or let user select from multiple)
+          // For now, we'll show the first one
+          const firstRecipe = result.recipes[0];
+          setGeneratedRecipe(firstRecipe);
+          setProcessing(false);
+          setProgress(100);
+          setCurrentStep('Done!');
+
+          // Show bottom sheet with generated recipe
+          setTimeout(() => {
+            recipeSheetRef.current?.expand();
+          }, 300);
+        } else {
+          throw new Error(result.error || 'Failed to generate recipes from ingredients');
+        }
       }
     } catch (err: any) {
       console.error('Error submitting:', err);
@@ -622,6 +679,129 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                   multiline
                   numberOfLines={5}
                 />
+
+                {/* Meal Type */}
+                <View className="mt-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Meal Type
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: 'breakfast', label: '🌅 Breakfast' },
+                      { id: 'lunch', label: '☀️ Lunch' },
+                      { id: 'dinner', label: '🌙 Dinner' },
+                      { id: 'snack', label: '🥨 Snack' },
+                      { id: 'any', label: '🍽️ Any' },
+                    ].map((mealOption) => (
+                      <TouchableOpacity
+                        key={mealOption.id}
+                        onPress={() => setMealType(mealOption.id)}
+                        className="px-4 py-2.5 rounded-lg"
+                        style={{
+                          backgroundColor: mealType === mealOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {mealOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Servings */}
+                <View className="mt-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Servings
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: '1-2', label: '1-2' },
+                      { id: '2-4', label: '2-4' },
+                      { id: '4-6', label: '4-6' },
+                      { id: '6+', label: '6+' },
+                    ].map((servingOption) => (
+                      <TouchableOpacity
+                        key={servingOption.id}
+                        onPress={() => setServings(servingOption.id)}
+                        className="px-4 py-2.5 rounded-lg"
+                        style={{
+                          backgroundColor: servings === servingOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {servingOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Cooking Time */}
+                <View className="mt-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Cooking Time
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: '15-30', label: '⚡ 15-30 min' },
+                      { id: '30-60', label: '⏱️ 30-60 min' },
+                      { id: '60+', label: '🍳 60+ min' },
+                    ].map((timeOption) => (
+                      <TouchableOpacity
+                        key={timeOption.id}
+                        onPress={() => setCookingTime(timeOption.id)}
+                        className="px-4 py-2.5 rounded-lg"
+                        style={{
+                          backgroundColor: cookingTime === timeOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {timeOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Skill Level */}
+                <View className="mt-4">
+                  <Text className="text-sm font-semibold mb-2" style={{ color: '#313131' }}>
+                    Skill Level
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {[
+                      { id: 'beginner', label: '👶 Beginner' },
+                      { id: 'intermediate', label: '👨‍🍳 Intermediate' },
+                      { id: 'advanced', label: '👨‍🍳‍ Advanced' },
+                    ].map((skillOption) => (
+                      <TouchableOpacity
+                        key={skillOption.id}
+                        onPress={() => setSkillLevel(skillOption.id)}
+                        className="px-4 py-2.5 rounded-lg"
+                        style={{
+                          backgroundColor: skillLevel === skillOption.id ? '#D4E95A' : '#F6FBDE',
+                        }}
+                      >
+                        <Text
+                          className="font-semibold text-sm"
+                          style={{ color: '#313131' }}
+                        >
+                          {skillOption.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
               </View>
 
               {/* Tips Card */}
@@ -722,10 +902,11 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
 
               {/* Recipe Image */}
               {generatedRecipe.thumbnailUrl && (
-                <Image
-                  source={{ uri: generatedRecipe.thumbnailUrl }}
-                  className="w-full h-48 rounded-3xl mb-4"
-                  resizeMode="cover"
+                <OptimizedImage
+                  source={generatedRecipe.thumbnailUrl}
+                  containerClassName="w-full h-48 rounded-3xl mb-4 overflow-hidden"
+                  style={{ width: '100%', height: 192 }}
+                  contentFit="cover"
                 />
               )}
 
@@ -852,8 +1033,10 @@ export function AddGuide({ onClose, onSuccess }: AddGuideProps) {
                       generatedRecipe,
                       userId,
                       {
-                        generatedBy: 'quick-recipe',
-                        preferences: { mealType, servings, vibe, cuisine, spiceLevel }
+                        generatedBy: mode === 'ingredients' ? 'from-ingredients' : 'quick-recipe',
+                        preferences: mode === 'ingredients' 
+                          ? { mealType, servings, cookingTime, skillLevel, dietary, userIngredients: ingredients.split(',').map(i => i.trim()) }
+                          : { mealType, servings, vibe, cuisine, spiceLevel }
                       }
                     );
                     Alert.alert('Success', 'Recipe saved successfully!', [
