@@ -70,7 +70,7 @@ export default function GuidesScreen() {
   const [loadingRecipeDetails, setLoadingRecipeDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeJobs, setActiveJobs] = useState<ProcessingJob[]>([]);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const activeJobsRef = useRef<ProcessingJob[]>([]);
   const [generatedRecipe, setGeneratedRecipe] = useState<any>(null);
 
@@ -373,11 +373,8 @@ export default function GuidesScreen() {
     // Close the add-guide sheet first
     bottomSheetRef.current?.close();
     // Set the generated recipe with mode and preferences
+    // The GeneratedRecipeSheet component will automatically expand when recipe is set
     setGeneratedRecipe({ recipe, mode, preferences });
-    // Small delay to ensure parent sheet closes first
-    setTimeout(() => {
-      generatedRecipeSheetRef.current?.expand();
-    }, 300);
   };
 
   const handleCloseGeneratedRecipeSheet = () => {
@@ -483,43 +480,6 @@ export default function GuidesScreen() {
       <View className="flex-1">
         <View className="pt-4 pb-2">
 
-
-          {/* <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
-          >
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => setSelectedCategory(cat.id)}
-                className="items-center mr-4"
-                activeOpacity={0.7}
-              >
-                <View
-                  className="w-16 h-16 overflow-hidden rounded-full items-center justify-center mb-1"
-                  style={{
-                    backgroundColor: selectedCategory === cat.id ? '#D4E95A' : '#FFFFFF',
-                  }}
-                >
-                  {cat.image ? (
-                    <Image source={cat.image} className="w-16 h-16" resizeMode="contain" />
-                  ) : (
-                    <Text className="text-2xl">{cat.icon}</Text>
-                  )}
-                </View>
-                <Text
-                  className="text-sm font-medium"
-                  style={{
-                    color: selectedCategory === cat.id ? '#313131' : '#6B7280',
-                  }}
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView> */}
-
           {/* Search Input */}
           <View className="px-4">
             <Input
@@ -555,7 +515,7 @@ export default function GuidesScreen() {
                       {activeJobs.length} {activeJobs.length === 1 ? 'recipe' : 'recipes'} generating
                     </Text>
                   </View>
-                  
+
                   {/* Progress for first job */}
                   {activeJobs[0] && (
                     <View>
@@ -672,25 +632,18 @@ export default function GuidesScreen() {
         onClose={handleCloseRecipeDetailsSheet}
       />
 
-      {/* Generated Recipe Bottom Sheet */}
-      {generatedRecipe && (
-        <BottomSheetComponent
-          bottomSheetRef={generatedRecipeSheetRef}
-          snapPoints={['85%', '95%']}
-          onClose={handleCloseGeneratedRecipeSheet}
-        >
-          <GeneratedRecipeSheet
-            recipe={generatedRecipe.recipe}
-            mode={generatedRecipe.mode}
-            preferences={generatedRecipe.preferences}
-            onClose={handleCloseGeneratedRecipeSheet}
-            onSave={async () => {
-              await loadGuides();
-              handleCloseGeneratedRecipeSheet();
-            }}
-          />
-        </BottomSheetComponent>
-      )}
+
+      <GeneratedRecipeSheet
+        bottomSheetRef={generatedRecipeSheetRef}
+        recipe={generatedRecipe?.recipe || null}
+        mode={generatedRecipe?.mode}
+        preferences={generatedRecipe?.preferences}
+        onClose={handleCloseGeneratedRecipeSheet}
+        onSave={async () => {
+          await loadGuides();
+          handleCloseGeneratedRecipeSheet();
+        }}
+      />
 
     </SafeAreaView>
   );

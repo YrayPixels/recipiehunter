@@ -203,9 +203,11 @@ export async function countCachedRecipes(): Promise<number> {
  */
 export async function cacheRecipe(recipe: any): Promise<void> {
   try {
+    // Generate a temporary ID if the recipe doesn't have one (e.g., AI-generated recipes)
     if (!recipe.id) {
-      console.warn('Cannot cache recipe without id');
-      return;
+      // Use a combination of title and timestamp to create a unique temporary ID
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      recipe = { ...recipe, id: tempId };
     }
     
     // Store the recipe with a long TTL since it's user-generated

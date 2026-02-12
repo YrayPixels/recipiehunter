@@ -1,12 +1,15 @@
-import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View, Linking } from 'react-native';
+import React, { useEffect } from 'react';
+import { Text, TouchableOpacity, View, Linking } from 'react-native';
 import { X, ExternalLink } from 'react-native-feather';
 import { OptimizedImage } from './OptimizedImage';
 import { recipeAPI } from '../lib/api';
 import { getUserId } from '../lib/userid';
 import { useAlert } from '../hooks/useAlert';
+import BottomSheetLib from '@gorhom/bottom-sheet';
+import { BottomSheet } from './BottomSheet';
 
 interface GeneratedRecipeSheetProps {
+  bottomSheetRef: React.RefObject<BottomSheetLib | null>;
   recipe: any;
   onClose: () => void;
   onSave: () => void;
@@ -15,6 +18,7 @@ interface GeneratedRecipeSheetProps {
 }
 
 export const GeneratedRecipeSheet: React.FC<GeneratedRecipeSheetProps> = ({
+  bottomSheetRef,
   recipe,
   onClose,
   onSave,
@@ -23,9 +27,36 @@ export const GeneratedRecipeSheet: React.FC<GeneratedRecipeSheetProps> = ({
 }) => {
   const { alert, AlertComponent } = useAlert();
 
+  // Automatically expand the sheet when a recipe is provided
+  useEffect(() => {
+    if (!recipe || !bottomSheetRef?.current) return;
+
+    // Use requestAnimationFrame for smoother timing, then a small delay for parent sheet to close
+    let timer: ReturnType<typeof setTimeout>;
+    const rafId = requestAnimationFrame(() => {
+      timer = setTimeout(() => {
+        if (bottomSheetRef.current && recipe) {
+          bottomSheetRef.current.expand();
+        }
+      }, 100);
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timer) clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe]);
+
   const handleSave = async () => {
+    if (!recipe) return;
+
     try {
       const userId = await getUserId();
+      if (!userId) {
+        alert('Error', 'User not authenticated', undefined, 'error');
+        return;
+      }
       await recipeAPI.saveSelected(
         recipe,
         userId,
@@ -47,9 +78,42 @@ export const GeneratedRecipeSheet: React.FC<GeneratedRecipeSheetProps> = ({
     }
   };
 
+  // Debug: Log recipe to see what we're receiving
+  useEffect(() => {
+    if (recipe) {
+      console.log('GeneratedRecipeSheet - Recipe received:', JSON.stringify(recipe, null, 2));
+      console.log('GeneratedRecipeSheet - Recipe title:', recipe?.title);
+      console.log('GeneratedRecipeSheet - Recipe ingredients:', recipe?.ingredients);
+      console.log('GeneratedRecipeSheet - Recipe steps:', recipe?.steps);
+    }
+  }, [recipe]);
+
+  // Don't render content if no recipe
+  if (!recipe) {
+    return (
+      <BottomSheet
+        bottomSheetRef={bottomSheetRef}
+        snapPoints={['85%', '95%']}
+        onClose={onClose}
+        backgroundStyle={{ backgroundColor: '#F6FBDE' }}
+      >
+        <View className="flex-1 items-center justify-center p-4">
+          <Text className="text-lg" style={{ color: '#313131' }}>
+            No recipe available
+          </Text>
+        </View>
+      </BottomSheet>
+    );
+  }
+
   return (
     <>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <BottomSheet
+        bottomSheetRef={bottomSheetRef}
+        snapPoints={['85%', '95%']}
+        onClose={onClose}
+        backgroundStyle={{ backgroundColor: '#F6FBDE' }}
+      >
         <View className="px-4 pt-2">
           {/* Header */}
           <View className="flex-row items-center justify-between mb-4">
@@ -77,7 +141,7 @@ export const GeneratedRecipeSheet: React.FC<GeneratedRecipeSheetProps> = ({
           {/* Title */}
           <View className="mb-4">
             <Text className="text-3xl  mb-2" style={{ color: '#313131' }}>
-              {recipe.title}
+              {recipe.title || 'Untitled Recipe'}
             </Text>
             {recipe.summary && (
               <Text className="text-base" style={{ color: '#666' }}>
@@ -198,8 +262,8 @@ export const GeneratedRecipeSheet: React.FC<GeneratedRecipeSheetProps> = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-      {AlertComponent}
+        {AlertComponent}
+      </BottomSheet>
     </>
   );
 };
