@@ -237,6 +237,113 @@ We built Recipe Hunter because we believe the culinary knowledge shared in video
 
 ---
 
+### 🚧 CHALLENGES WE RAN INTO
+
+Building Recipe Hunter wasn't easy. Here's what we had to overcome:
+
+**Video Processing Complexity**
+Every platform is different. YouTube has transcripts, TikTok has fast-paced edits, Instagram has Reels with music overlays. We had to build a system that handles all of them—extracting audio, processing video frames, and dealing with age-restricted or private content. Some videos required multiple fallback methods to get the recipe information.
+
+**AI Accuracy Across Languages**
+We wanted to preserve recipes in 99 languages—from English to Yoruba to Hausa. Getting AI to accurately transcribe and extract recipes from videos in different languages, especially when chefs speak quickly or use regional cooking terms, was a constant challenge. We spent months refining prompts and testing edge cases.
+
+**Real-Time Processing**
+Users expect recipes in 30-60 seconds, but video processing is computationally expensive. We built a background job system with real-time progress tracking so users know exactly what's happening. Balancing speed with accuracy while keeping costs reasonable was tricky.
+
+**Cross-Platform Sync**
+Making sure your recipes sync perfectly between your phone, tablet, and computer—even when you're offline—required careful architecture. We had to handle conflicts, ensure data integrity, and make the experience seamless across all devices.
+
+**Video Download Reliability**
+Platforms change their APIs. Videos get taken down. Some content is region-locked. We built multiple fallback systems and gave users the option to upload videos directly when links fail. The "it just works" experience required a lot of behind-the-scenes engineering.
+
+---
+
+### 🏆 ACCOMPLISHMENTS THAT WE'RE PROUD OF
+
+Despite the challenges, we're incredibly proud of what we've built:
+
+**Multi-Platform Video Support**
+We're one of the few apps that can extract recipes from YouTube, TikTok, Instagram, and direct uploads—all in one place. No more switching between apps or manually transcribing.
+
+**99 Language Support**
+We didn't want language barriers to stop anyone from preserving their family recipes. Our AI transcription works with 99 languages, including many African languages that other apps ignore. That jollof rice tutorial in Yoruba? We've got you covered.
+
+**Complete Cooking Ecosystem**
+We didn't just build a recipe extractor. We built a full cooking companion: meal planning, shopping lists, pantry tracking, AI recipe generation, and PDF export. Everything you need to go from "saved recipe" to "dinner on the table."
+
+**Offline-First Design**
+Your recipes work offline. Your shopping lists work offline. You can cook without worrying about Wi-Fi. We built this because we know kitchens have terrible signal.
+
+**Beautiful, Intuitive Interface**
+We spent countless hours on UX. The app should feel effortless—no learning curve, no confusion. Just paste a link, get a recipe, start cooking. We're proud of how simple we made a complex process.
+
+**Real User Impact**
+The best accomplishment? Hearing from users who've actually cooked recipes they saved months ago. People who meal plan in 10 minutes instead of 2 hours. Beginners who built confidence in the kitchen. That's why we built this.
+
+---
+
+### 📚 WHAT WE LEARNED
+
+Building Recipe Hunter taught us valuable lessons:
+
+**User Behavior is Everything**
+People don't just want to save recipes—they want to actually cook them. That insight drove every feature decision. Meal planning, shopping lists, and step-by-step tracking weren't afterthoughts—they were the core of solving the real problem.
+
+**AI is Powerful, But Not Perfect**
+AI transcription and extraction are incredible, but they need human-friendly error handling. When a video fails, we give clear explanations and alternative options. Transparency builds trust.
+
+**Speed Matters, But Accuracy Matters More**
+We could process videos faster, but we chose accuracy. A recipe with wrong measurements is worse than waiting an extra 30 seconds. Users appreciate reliability over speed.
+
+**Offline is Non-Negotiable**
+Kitchens are offline zones. Phones get greasy. Wi-Fi drops. Building offline-first wasn't a nice-to-have—it was essential for real-world cooking.
+
+**The Best Features Solve Real Problems**
+Every feature in Recipe Hunter solves a pain point we experienced ourselves. Can't find that saved recipe? Search. Don't know what to cook? Meal planner. Forgot ingredients? Shopping list. Real problems, real solutions.
+
+**Community Feedback is Gold**
+Early testers told us what worked and what didn't. Their feedback shaped the app more than any design document. We learned to ship, listen, and iterate quickly.
+
+---
+
+### 🔮 WHAT'S NEXT FOR RECIPE HUNTER
+
+We're just getting started. Here's what's coming:
+
+**Enhanced AI Accuracy**
+We're continuously improving our AI models to better understand cooking techniques, regional ingredients, and chef terminology. Expect even more accurate recipe extraction, especially for complex dishes and international cuisines.
+
+**More Video Platforms**
+We're working on support for more platforms where people discover recipes—Pinterest, Facebook, and more. Your recipe collection should work everywhere you find inspiration.
+
+**Smart Recipe Suggestions**
+Our AI will learn your cooking preferences and suggest recipes based on what you've made before, what's in your pantry, and what you're in the mood for. Personalized cooking, powered by AI.
+
+**Social Features**
+Share recipes with family and friends. Create recipe collections. Follow your favorite creators. Cooking is better together.
+
+**Nutritional Information**
+Get detailed nutritional breakdowns for every recipe. Track calories, macros, and dietary information to make informed choices.
+
+**Voice Commands**
+Hands-free cooking. "Next step," "What's the temperature?" "Add to shopping list." Control the app with your voice while your hands are covered in flour.
+
+**Recipe Scaling**
+Automatically adjust ingredient measurements for different serving sizes. Cooking for 2 or 20? We'll do the math.
+
+**Integration with Smart Home**
+Connect with smart ovens, scales, and thermometers. Set temperatures, get timers, and cook with precision.
+
+**Community Recipe Sharing**
+A marketplace where users can share their extracted recipes, rate them, and discover new dishes from the community.
+
+**Advanced Meal Planning**
+AI-powered meal planning that considers your schedule, dietary preferences, and budget. Generate entire meal plans with one tap.
+
+We're building Recipe Hunter to be the ultimate cooking companion. Every update brings us closer to that vision.
+
+---
+
 **Download Recipe Hunter today and finally cook those saved recipes.**
 
 *Stop rewinding. Start cooking.*
